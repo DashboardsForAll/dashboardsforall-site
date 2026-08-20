@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do CEO — Clínica Odontológica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --porcelain:#F5F7F6; --card:#FFFFFF; --ink:#16292E; --ink-soft:#5A6E74;
+  --teal:#0E7C6B; --teal-deep:#08574B; --teal-lite:#7FBFB2; --mint:#DCEDE8; --mint-soft:#EEF5F3;
+  --coral:#C1503A; --coral-soft:#F7E5E0; --slate:#8DA2A8; --hair:#DEE6E4;
+  --gold:#B5872C; --gold-soft:#F7EEDC; --blue:#3B6B8C;
+  --shadow:0 1px 2px rgba(22,41,46,.05),0 4px 14px rgba(22,41,46,.055);
+  --shadow-lg:0 2px 6px rgba(22,41,46,.06),0 12px 34px rgba(22,41,46,.09);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--porcelain);color:var(--ink);font-family:'Archivo',sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ===== enamel texture backdrop ===== */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(14,124,107,.05), transparent 42%),
+    radial-gradient(circle at 88% 4%, rgba(59,107,140,.04), transparent 38%);}
+
+/* ===== header ===== */
+header{background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--hair);position:sticky;top:0;z-index:60}
+.hd{max-width:1340px;margin:0 auto;padding:14px 28px 0}
+.hd-top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:25px;letter-spacing:-.015em;line-height:1.1}
+.brand h1 em{font-style:italic;color:var(--teal)}
+.brand .sub{font-size:10.5px;color:var(--ink-soft);letter-spacing:.15em;text-transform:uppercase;margin-top:3px}
+#mascot{width:46px;height:46px;flex-shrink:0}
+#mascot .blink{animation:blink 5.5s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%,98%{transform:scaleY(.1)}}
+#mascot .sparkle{animation:tw 3s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+.rule{height:6px;margin-top:12px;border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);opacity:.9}
+.ctrls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--mint-soft);border:1px solid var(--hair);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink-soft);cursor:pointer;transition:.15s}
+.seg button:hover{color:var(--ink)} .seg button.on{background:var(--ink);color:#fff}
+select{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--ink);background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:7px 9px;cursor:pointer}
+label.flt{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:flex;align-items:center;gap:7px}
+button:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.tabs{display:flex;gap:22px;margin-top:2px;overflow-x:auto}
+.tabs button{border:0;background:none;font-family:'Archivo',sans-serif;font-size:13px;font-weight:600;color:var(--ink-soft);padding:12px 2px 12px;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:color .15s}
+.tabs button:hover{color:var(--ink)} .tabs button.on{color:var(--teal-deep);border-bottom-color:var(--teal)}
+.tabs .n{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--slate);margin-right:5px}
+
+main{max-width:1340px;margin:0 auto;padding:22px 28px 60px}
+.page{display:none}.page.on{display:block;animation:f .28s ease}
+@keyframes f{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.page.on,#mascot .blink,#mascot .sparkle{animation:none}}
+.grid{display:grid;gap:15px}
+.k6{grid-template-columns:repeat(6,1fr)} .k4{grid-template-columns:repeat(4,1fr)} .k3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:1.5fr 1fr} .g2e{grid-template-columns:1fr 1fr} .g21{grid-template-columns:1fr 1.5fr}
+.mt{margin-top:15px}
+@media(max-width:1100px){.k6{grid-template-columns:repeat(3,1fr)}.k4{grid-template-columns:repeat(2,1fr)}.g2,.g2e,.g21,.k3{grid-template-columns:1fr}}
+@media(max-width:620px){.k6,.k4{grid-template-columns:repeat(2,1fr)}main,.hd{padding-left:14px;padding-right:14px}}
+
+.card{background:var(--card);border:1px solid var(--hair);border-radius:13px;box-shadow:var(--shadow);padding:17px 19px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;top:0;left:19px;right:19px;height:4px;border-top:2px solid var(--mint);border-bottom:1px solid var(--mint)}
+.card h3{font-family:'Fraunces',serif;font-weight:600;font-size:16px;letter-spacing:-.005em}
+.card .cap{font-size:11.5px;color:var(--ink-soft);margin:2px 0 13px}
+.kpi{padding:15px 17px 13px}
+.kpi .lbl{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft)}
+.kpi .val{font-family:'IBM Plex Mono',monospace;font-size:clamp(17px,1.55vw,21px);font-weight:600;margin:5px 0 2px;letter-spacing:-.02em}
+.kpi .dlt{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;line-height:1.35}
+.up{color:var(--teal)}.dn{color:var(--coral)}.nt{color:var(--slate)}.gd{color:var(--gold)}
+.cw{position:relative;height:290px}.cw-t{height:400px}.cw-s{height:230px}.cw-m{height:260px}
+
+/* insight banner with mascot */
+.insight{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(100deg,var(--mint-soft),#fff 70%);border:1px solid var(--mint);border-radius:13px;padding:15px 18px;box-shadow:var(--shadow)}
+.insight svg{width:38px;height:38px;flex-shrink:0;margin-top:1px}
+.insight .t{font-family:'Fraunces',serif;font-weight:600;font-size:14.5px;margin-bottom:3px}
+.insight .b{font-size:12.8px;color:var(--ink-soft);line-height:1.55}
+.insight .b b{color:var(--ink);font-weight:600}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;text-align:right;padding:8px 9px;border-bottom:2px solid var(--ink);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 9px;border-bottom:1px solid var(--hair);text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px}
+td:first-child{font-family:'Archivo',sans-serif;font-weight:500}
+tr:hover td{background:var(--mint-soft)}
+tfoot td{border-top:2px solid var(--ink);border-bottom:0;font-weight:600;background:#fff!important}
+.chip{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--mint);color:var(--teal-deep);font-weight:500}
+.chip.w{background:var(--coral-soft);color:var(--coral)} .chip.g{background:var(--gold-soft);color:var(--gold)}
+.bar{height:5px;border-radius:3px;background:var(--mint);position:relative;overflow:hidden;min-width:52px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--teal);border-radius:3px}
+.bar i.w{background:var(--coral)}
+.ft{margin-top:24px;font-size:11px;color:var(--slate);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:14px}
+</style>
+</head>
+<body>
+
+<!-- ===== MASCOTE: Dr. Molar ===== -->
+<svg style="display:none">
+<symbol id="molar" viewBox="0 0 64 64">
+  <g>
+    <path d="M32 6c-5.6 0-8.4 1.6-11.2 1.6S15.2 6.2 12 8.4C8.4 10.9 7.4 15.6 8.6 21.4c.9 4.3 1.6 6.7 2 10.6.5 4.6.6 9.4 1.6 14.8.7 3.9 1.8 7.3 2.9 9.2 1.3 2.2 3.6 2.4 4.8.3 1.3-2.2 2-5.6 2.7-9.5.6-3.3 1.1-6.4 1.7-8.4.6-1.9 1.6-3 3.7-3s3.1 1.1 3.7 3c.6 2 1.1 5.1 1.7 8.4.7 3.9 1.4 7.3 2.7 9.5 1.2 2.1 3.5 1.9 4.8-.3 1.1-1.9 2.2-5.3 2.9-9.2 1-5.4 1.1-10.2 1.6-14.8.4-3.9 1.1-6.3 2-10.6 1.2-5.8.2-10.5-3.4-13C48.8 6.2 46 7.6 43.2 7.6S37.6 6 32 6z"
+      fill="#fff" stroke="#16292E" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M18 13c-1.8 1.4-2.6 3.6-2.2 6.4" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".9"/>
+    <g class="blink" style="transform-origin:24px 26px">
+      <circle cx="24.5" cy="26" r="2.5" fill="#16292E"/>
+      <circle cx="25.3" cy="25.2" r=".85" fill="#fff"/>
+    </g>
+    <g class="blink" style="transform-origin:40px 26px">
+      <circle cx="39.5" cy="26" r="2.5" fill="#16292E"/>
+      <circle cx="40.3" cy="25.2" r=".85" fill="#fff"/>
+    </g>
+    <path d="M27.5 33.5c1.4 1.7 3 2.5 4.5 2.5s3.1-.8 4.5-2.5" stroke="#16292E" stroke-width="2.1" stroke-linecap="round" fill="none"/>
+    <ellipse cx="19.5" cy="31.5" rx="2.6" ry="1.7" fill="#C1503A" opacity=".22"/>
+    <ellipse cx="44.5" cy="31.5" rx="2.6" ry="1.7" fill="#C1503A" opacity=".22"/>
+    <g class="sparkle" style="transform-origin:50px 14px">
+      <path d="M50 9.5l1.3 3.2 3.2 1.3-3.2 1.3L50 18.5l-1.3-3.2-3.2-1.3 3.2-1.3z" fill="#B5872C"/>
+    </g>
+  </g>
+</symbol>
+</svg>
+
+<header>
+  <div class="hd">
+    <div class="hd-top">
+      <div class="brand">
+        <svg id="mascot"><use href="#molar"/></svg>
+        <div>
+          <h1>Painel do <em>CEO</em></h1>
+          <div class="sub">Clínica Odontológica · 2021–2025 · R$</div>
+        </div>
+      </div>
+      <div class="ctrls">
+        <div class="seg" id="segAno" role="group" aria-label="Ano"></div>
+        <label class="flt">Dentista<select id="selDent"><option value="-1">Todos</option></select></label>
+        <label class="flt">Categoria<select id="selCat"><option value="">Todas</option></select></label>
+      </div>
+    </div>
+    <div class="rule"></div>
+    <nav class="tabs" id="tabs">
+      <button class="on" data-p="p1"><span class="n">I</span>Visão do CEO</button>
+      <button data-p="p2"><span class="n">II</span>Rentabilidade</button>
+      <button data-p="p3"><span class="n">III</span>Capacidade &amp; Produtividade</button>
+      <button data-p="p4"><span class="n">IV</span>Mix &amp; Concentração</button>
+      <button data-p="p5"><span class="n">V</span>Caixa &amp; Recebíveis</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ============ I — VISÃO DO CEO ============ -->
+<section class="page on" id="p1">
+  <div id="insight1"></div>
+  <div class="grid k6 mt" id="kpiRow"></div>
+  <div class="grid g2 mt">
+    <div class="card">
+      <h3>Trajetória do faturamento</h3>
+      <div class="cap" id="capMensal">Receita anual e lucro bruto ao longo do período</div>
+      <div class="cw"><canvas id="chMensal"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Ponte de resultado</h3>
+      <div class="cap">O que explica a variação de receita entre o primeiro e o último ano</div>
+      <div class="cw"><canvas id="chPonte"></canvas></div>
+    </div>
+  </div>
+  <div class="grid g3 mt">
+    <div class="card">
+      <h3>Receita por categoria</h3>
+      <div class="cap">Onde a clínica realmente fatura</div>
+      <div class="cw cw-s"><canvas id="chCat"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Margem por categoria</h3>
+      <div class="cap">Rentabilidade relativa de cada especialidade</div>
+      <div class="cw cw-s"><canvas id="chCatMg"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Ritmo semanal</h3>
+      <div class="cap">Atendimentos e receita por dia da semana</div>
+      <div class="cw cw-s"><canvas id="chSemana"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ II — RENTABILIDADE ============ -->
+<section class="page" id="p2">
+  <div id="insight2"></div>
+  <div class="grid k4 mt" id="kpiRent"></div>
+  <div class="grid g2 mt">
+    <div class="card">
+      <h3>Do bruto ao lucro</h3>
+      <div class="cap">Cascata: faturamento → taxas → juros → materiais → mão de obra → lucro</div>
+      <div class="cw cw-t"><canvas id="chWf"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Distância da margem-alvo</h3>
+      <div class="cap">Cada barra mostra quantos pontos percentuais o procedimento está acima ou abaixo da meta</div>
+      <div class="cw cw-t"><canvas id="chScatter"></canvas></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <h3>Matriz de rentabilidade por procedimento</h3>
+    <div class="cap">Ordenada por margem de contribuição por minuto — o recurso escasso da clínica é a cadeira, não o procedimento</div>
+    <div style="overflow-x:auto"><table id="tbProc"></table></div>
+  </div>
+</section>
+
+<!-- ============ III — CAPACIDADE ============ -->
+<section class="page" id="p3">
+  <div id="insight3"></div>
+  <div class="card mt" style="padding:14px 19px">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <label class="flt" style="gap:11px">Meta de ocupação
+        <input type="range" id="rngCap" min="60" max="250" value="100" step="10" style="width:230px;accent-color:var(--teal)">
+        <span class="mono" id="lblCap" style="font-weight:600;color:var(--teal);min-width:96px"></span>
+      </label>
+      <span style="font-size:11.5px;color:var(--ink-soft);flex:1;min-width:240px">
+        Referência = melhor decil de horas/mês do próprio histórico. Aumente a meta para simular expansão de agenda.
+      </span>
+    </div>
+  </div>
+  <div class="grid k4 mt" id="kpiCap"></div>
+  <div class="grid g2 mt">
+    <div class="card">
+      <h3>Horas clínicas ocupadas por mês</h3>
+      <div class="cap">Tempo de cadeira consumido vs. capacidade instalada estimada</div>
+      <div class="cw"><canvas id="chHoras"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Margem por minuto de cadeira</h3>
+      <div class="cap">Quanto cada minuto ocupado gera de lucro, por categoria</div>
+      <div class="cw"><canvas id="chCmMin"></canvas></div>
+    </div>
+  </div>
+  <div class="grid g2e mt">
+    <div class="card">
+      <h3>Produtividade por dentista</h3>
+      <div class="cap">Receita e lucro gerados por hora clínica</div>
+      <div class="cw cw-m"><canvas id="chProdDent"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Painel do corpo clínico</h3>
+      <div class="cap">Receita, margem, ocupação e geração de valor por hora</div>
+      <div style="overflow-x:auto"><table id="tbDent"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IV — MIX & CONCENTRAÇÃO ============ -->
+<section class="page" id="p4">
+  <div id="insight4"></div>
+  <div class="grid g21 mt">
+    <div class="card">
+      <h3>Curva ABC de procedimentos</h3>
+      <div class="cap">Concentração da receita — quantos procedimentos sustentam 80% do faturamento</div>
+      <div class="cw cw-t"><canvas id="chABC"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Evolução do mix por categoria</h3>
+      <div class="cap">Participação de cada especialidade na receita, ano a ano</div>
+      <div class="cw cw-t"><canvas id="chMixAno"></canvas></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <h3>Classificação ABC</h3>
+    <div class="cap">A = 80% da receita · B = 80–95% · C = cauda longa</div>
+    <div style="overflow-x:auto"><table id="tbABC"></table></div>
+  </div>
+</section>
+
+<!-- ============ V — CAIXA & RECEBÍVEIS ============ -->
+<section class="page" id="p5">
+  <div id="insight5"></div>
+  <div class="grid k4 mt" id="kpiCx"></div>
+  <div class="grid g2 mt">
+    <div class="card">
+      <h3>Deduções financeiras por mês</h3>
+      <div class="cap">Taxas de operadora pagas e juros de carnê auferidos</div>
+      <div class="cw"><canvas id="chDeduz"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Mix de recebimento</h3>
+      <div class="cap">Participação de cada forma na receita bruta</div>
+      <div class="cw"><canvas id="chFormas"></canvas></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <h3>Auditoria de operadoras de cartão</h3>
+    <div class="cap">Taxa efetiva cobrada vs. contratada, prazo de repasse e custo de oportunidade do float</div>
+    <div style="overflow-x:auto"><table id="tbOper"></table></div>
+  </div>
+  <div class="card mt">
+    <h3>Simulador de renegociação de taxas</h3>
+    <div class="cap">Quanto a clínica recupera ao reduzir a taxa média de cartão em pontos percentuais</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+      <label class="flt" style="gap:10px">Redução na taxa
+        <input type="range" id="rngTaxa" min="0" max="100" value="25" step="5" style="width:200px;accent-color:var(--teal)">
+        <span class="mono" id="lblTaxa" style="font-weight:600;color:var(--teal);min-width:52px">-0,25 p.p.</span>
+      </label>
+    </div>
+    <div class="cw cw-s"><canvas id="chSim"></canvas></div>
+  </div>
+</section>
+
+<div class="ft">
+  <span>Fonte: Controle_Financeiro_Clinica_Odontológica.xlsx · 1.200 vendas · medidas alinhadas ao modelo semântico Power BI</span>
+  <span class="mono" id="ftP"></span>
+</div>
+</main>
+
+<script>
+const D = {"dentistas":["Dr. Bruno Martins","Dr. Felipe Andrade","Dr. Rafael Almeida","Dra. Camila Nogueira","Dra. Luísa Ribeiro","Dra. Mariana Costa"],"procedimentos":["Aplicação de flúor","Clareamento em consultório","Consulta de avaliação","Coroa provisória","Extração simples","Instalação de aparelho ortodôntico","Instalação de implante","Limpeza / Profilaxia","Manutenção ortodôntica","Moldagem odontológica","Placa de bruxismo","Radiografia periapical","Restauração em resina","Selante dentário","Tratamento de canal multirradicular","Tratamento de canal unirradicular"],"formas":["Pix","Débito","Crédito","Carnê"],"operadoras":["Cielo","Getnet","PagSeguro","Rede","Stone"],"procMeta":{"Aplicação de flúor":{"cat":"Preventivo","ms":0.6109,"vv":130.0,"min":20},"Clareamento em consultório":{"cat":"Estética","ms":0.5566,"vv":890.0,"min":90},"Consulta de avaliação":{"cat":"Diagnóstico","ms":0.6519,"vv":150.0,"min":45},"Coroa provisória":{"cat":"Prótese","ms":0.5792,"vv":680.0,"min":60},"Extração simples":{"cat":"Cirurgia","ms":0.5468,"vv":520.0,"min":45},"Instalação de aparelho ortodôntico":{"cat":"Ortodontia","ms":0.5776,"vv":1800.0,"min":120},"Instalação de implante":{"cat":"Cirurgia","ms":0.5274,"vv":3200.0,"min":90},"Limpeza / Profilaxia":{"cat":"Preventivo","ms":0.6146,"vv":220.0,"min":30},"Manutenção ortodôntica":{"cat":"Ortodontia","ms":0.6275,"vv":180.0,"min":30},"Moldagem odontológica":{"cat":"Prótese","ms":0.5554,"vv":240.0,"min":40},"Placa de bruxismo":{"cat":"Prótese","ms":0.5785,"vv":750.0,"min":60},"Radiografia periapical":{"cat":"Radiologia","ms":0.6343,"vv":90.0,"min":15},"Restauração em resina":{"cat":"Restaurador","ms":0.5097,"vv":390.0,"min":60},"Selante dentário":{"cat":"Preventivo","ms":0.604,"vv":160.0,"min":30},"Tratamento de canal multirradicular":{"cat":"Endodontia","ms":0.542,"vv":1450.0,"min":150},"Tratamento de canal unirradicular":{"cat":"Endodontia","ms":0.5471,"vv":950.0,"min":90}},"prazo":{"Stone":1,"Cielo":2,"Rede":1,"PagSeguro":1,"Getnet":2},"taxas":{"Stone":{"deb":0.014,"cred":0.032,"prazo":"D+1"},"Cielo":{"deb":0.0165,"cred":0.035,"prazo":"D+2"},"Rede":{"deb":0.0155,"cred":0.0335,"prazo":"D+1"},"PagSeguro":{"deb":0.019,"cred":0.039,"prazo":"D+1"},"Getnet":{"deb":0.0175,"cred":0.0365,"prazo":"D+2"}},"cols":["data","dent","proc","valor","forma","oper","parc","custoOper","juros","liquido","custoMat","custoDent","custoAsb","custoTotal","lucro"],"vendas":[["21-01-01",0,11,100.0,2,3,0,3.35,0.0,96.65,6.43,22.5,3.98,32.91,63.74],["21-01-01",2,12,400.0,3,-1,2,0.0,10.0,410.0,38.79,136.5,15.92,191.21,218.79],["21-01-02",1,0,140.0,1,0,0,2.31,0.0,137.69,6.28,39.0,5.31,50.59,87.1],["21-01-04",4,15,1040.0,0,-1,0,0.0,0.0,1040.0,26.33,380.0,23.88,430.21,609.79],["21-01-05",3,7,220.0,2,4,0,7.04,0.0,212.96,10.82,66.0,7.96,84.78,128.18],["21-01-06",2,3,710.0,1,2,0,13.49,0.0,696.51,32.23,238.0,15.92,286.15,410.36],["21-01-07",1,15,1010.0,2,2,0,39.39,0.0,970.61,26.33,380.0,23.88,430.21,540.4],["21-01-09",4,13,150.0,0,-1,0,0.0,0.0,150.0,7.4,48.0,7.96,63.36,86.64],["21-01-11",2,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["21-01-11",0,13,150.0,2,4,0,4.8,0.0,145.2,7.4,48.0,7.96,63.36,81.84],["21-01-11",0,4,570.0,0,-1,0,0.0,0.0,570.0,15.73,208.0,11.94,235.67,334.33],["21-01-13",0,12,360.0,1,4,0,5.04,0.0,354.96,38.79,136.5,15.92,191.21,163.75],["21-01-14",1,3,640.0,1,2,0,12.16,0.0,627.84,32.23,238.0,15.92,286.15,341.69],["21-01-18",0,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["21-01-20",3,1,870.0,2,0,0,30.45,0.0,839.55,59.21,311.5,23.88,394.59,444.96],["21-01-21",4,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["21-01-21",0,2,140.0,2,3,0,4.69,0.0,135.31,2.77,37.5,11.94,52.21,83.1],["21-01-23",1,12,370.0,0,-1,0,0.0,0.0,370.0,38.79,136.5,15.92,191.21,178.79],["21-01-26",1,9,230.0,1,0,0,3.8,0.0,226.2,24.09,72.0,10.62,106.71,119.49],["21-01-27",2,4,550.0,1,2,0,10.45,0.0,539.55,15.73,208.0,11.94,235.67,303.88],["21-01-27",4,7,230.0,2,2,0,8.97,0.0,221.03,10.82,66.0,7.96,84.78,136.25],["21-01-29",2,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["21-01-30",4,13,150.0,2,0,0,5.25,0.0,144.75,7.4,48.0,7.96,63.36,81.39],["21-01-30",1,12,420.0,2,4,0,13.44,0.0,406.56,38.79,136.5,15.92,191.21,215.35],["21-02-03",5,1,890.0,2,0,0,31.15,0.0,858.85,59.21,311.5,23.88,394.59,464.26],["21-02-05",2,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["21-02-05",4,9,250.0,0,-1,0,0.0,0.0,250.0,24.09,72.0,10.62,106.71,143.29],["21-02-10",0,7,230.0,2,1,0,8.39,0.0,221.61,10.82,66.0,7.96,84.78,136.83],["21-02-12",1,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-02-13",1,9,260.0,0,-1,0,0.0,0.0,260.0,24.09,72.0,10.62,106.71,153.29],["21-02-13",5,6,3520.0,0,-1,0,0.0,0.0,3520.0,208.54,1280.0,23.88,1512.42,2007.58],["21-02-16",4,5,1710.0,1,2,0,32.49,0.0,1677.51,98.54,630.0,31.85,760.39,917.12],["21-02-18",2,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["21-02-18",0,12,390.0,0,-1,0,0.0,0.0,390.0,38.79,136.5,15.92,191.21,198.79],["21-02-22",2,2,160.0,2,3,0,5.36,0.0,154.64,2.77,37.5,11.94,52.21,102.43],["21-02-22",5,10,720.0,2,4,0,23.04,0.0,696.96,37.69,262.5,15.92,316.11,380.85],["21-02-23",3,4,530.0,1,2,0,10.07,0.0,519.93,15.73,208.0,11.94,235.67,284.26],["21-02-24",4,3,650.0,2,0,0,22.75,0.0,627.25,32.23,238.0,15.92,286.15,341.1],["21-02-25",1,3,730.0,0,-1,0,0.0,0.0,730.0,32.23,238.0,15.92,286.15,443.85],["21-02-27",0,4,500.0,2,3,0,16.75,0.0,483.25,15.73,208.0,11.94,235.67,247.58],["21-02-27",2,0,130.0,1,0,0,2.15,0.0,127.85,6.28,39.0,5.31,50.59,77.26],["21-03-01",5,7,240.0,2,3,0,8.04,0.0,231.96,10.82,66.0,7.96,84.78,147.18],["21-03-02",3,3,730.0,2,4,0,23.36,0.0,706.64,32.23,238.0,15.92,286.15,420.49],["21-03-03",4,3,730.0,0,-1,0,0.0,0.0,730.0,32.23,238.0,15.92,286.15,443.85],["21-03-05",2,12,410.0,2,4,0,13.12,0.0,396.88,38.79,136.5,15.92,191.21,205.67],["21-03-05",1,3,730.0,3,-1,10,0.0,25.55,755.55,32.23,238.0,15.92,286.15,469.4],["21-03-08",4,12,390.0,2,0,0,13.65,0.0,376.35,38.79,136.5,15.92,191.21,185.14],["21-03-08",1,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["21-03-09",0,1,900.0,1,2,0,17.1,0.0,882.9,59.21,311.5,23.88,394.59,488.31],["21-03-09",0,4,540.0,0,-1,0,0.0,0.0,540.0,15.73,208.0,11.94,235.67,304.33],["21-03-10",1,11,90.0,1,2,0,1.71,0.0,88.29,6.43,22.5,3.98,32.91,55.38],["21-03-12",2,7,220.0,0,-1,0,0.0,0.0,220.0,10.82,66.0,7.96,84.78,135.22],["21-03-17",0,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["21-03-18",5,7,230.0,1,0,0,3.8,0.0,226.2,10.82,66.0,7.96,84.78,141.42],["21-03-19",2,2,160.0,2,1,0,5.84,0.0,154.16,2.77,37.5,11.94,52.21,101.95],["21-03-20",0,10,780.0,0,-1,0,0.0,0.0,780.0,37.69,262.5,15.92,316.11,463.89],["21-03-22",5,12,370.0,1,1,0,6.48,0.0,363.52,38.79,136.5,15.92,191.21,172.31],["21-03-23",4,4,510.0,2,0,0,17.85,0.0,492.15,15.73,208.0,11.94,235.67,256.48],["21-03-24",4,12,380.0,1,1,0,6.65,0.0,373.35,38.79,136.5,15.92,191.21,182.14],["21-03-24",0,9,230.0,1,3,0,3.56,0.0,226.44,24.09,72.0,10.62,106.71,119.73],["21-03-26",5,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["21-03-26",1,3,710.0,1,0,0,11.71,0.0,698.29,32.23,238.0,15.92,286.15,412.14],["21-03-27",2,10,710.0,2,3,0,23.79,0.0,686.21,37.69,262.5,15.92,316.11,370.1],["21-03-29",5,7,210.0,0,-1,0,0.0,0.0,210.0,10.82,66.0,7.96,84.78,125.22],["21-03-29",1,4,520.0,1,0,0,8.58,0.0,511.42,15.73,208.0,11.94,235.67,275.75],["21-03-29",2,10,790.0,2,1,0,28.83,0.0,761.17,37.69,262.5,15.92,316.11,445.06],["21-03-30",1,2,140.0,0,-1,0,0.0,0.0,140.0,2.77,37.5,11.94,52.21,87.79],["21-03-30",0,12,420.0,2,0,0,14.7,0.0,405.3,38.79,136.5,15.92,191.21,214.09],["21-03-31",2,15,910.0,1,0,0,15.02,0.0,894.98,26.33,380.0,23.88,430.21,464.77],["21-03-31",3,7,210.0,3,-1,10,0.0,7.35,217.35,10.82,66.0,7.96,84.78,132.57],["21-04-01",3,2,140.0,2,3,0,4.69,0.0,135.31,2.77,37.5,11.94,52.21,83.1],["21-04-03",5,13,150.0,1,3,0,2.33,0.0,147.67,7.4,48.0,7.96,63.36,84.31],["21-04-06",1,8,190.0,2,4,0,6.08,0.0,183.92,5.08,54.0,7.96,67.04,116.88],["21-04-07",3,11,90.0,1,0,0,1.49,0.0,88.51,6.43,22.5,3.98,32.91,55.6],["21-04-07",4,8,200.0,2,0,0,7.0,0.0,193.0,5.08,54.0,7.96,67.04,125.96],["21-04-07",5,12,360.0,2,4,0,11.52,0.0,348.48,38.79,136.5,15.92,191.21,157.27],["21-04-07",1,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-04-10",2,4,550.0,3,-1,6,0.0,19.25,569.25,15.73,208.0,11.94,235.67,333.58],["21-04-14",1,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["21-04-14",1,8,180.0,2,1,0,6.57,0.0,173.43,5.08,54.0,7.96,67.04,106.39],["21-04-16",0,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["21-04-16",3,2,140.0,2,4,0,4.48,0.0,135.52,2.77,37.5,11.94,52.21,83.31],["21-04-17",5,12,410.0,2,3,0,13.74,0.0,396.26,38.79,136.5,15.92,191.21,205.05],["21-04-19",4,7,230.0,2,1,0,8.39,0.0,221.61,10.82,66.0,7.96,84.78,136.83],["21-04-20",3,5,1860.0,1,1,0,32.55,0.0,1827.45,98.54,630.0,31.85,760.39,1067.06],["21-04-23",3,8,190.0,2,1,0,6.93,0.0,183.07,5.08,54.0,7.96,67.04,116.03],["21-04-26",3,7,230.0,2,2,0,8.97,0.0,221.03,10.82,66.0,7.96,84.78,136.25],["21-04-27",0,2,150.0,2,2,0,5.85,0.0,144.15,2.77,37.5,11.94,52.21,91.94],["21-04-28",1,7,220.0,1,1,0,3.85,0.0,216.15,10.82,66.0,7.96,84.78,131.37],["21-04-28",1,10,780.0,1,1,0,13.65,0.0,766.35,37.69,262.5,15.92,316.11,450.24],["21-04-29",2,2,150.0,1,0,0,2.48,0.0,147.52,2.77,37.5,11.94,52.21,95.31],["21-05-03",1,1,890.0,3,-1,12,0.0,40.05,930.05,59.21,311.5,23.88,394.59,535.46],["21-05-03",2,10,810.0,0,-1,0,0.0,0.0,810.0,37.69,262.5,15.92,316.11,493.89],["21-05-04",3,2,150.0,2,3,0,5.03,0.0,144.97,2.77,37.5,11.94,52.21,92.76],["21-05-05",2,7,240.0,1,4,0,3.36,0.0,236.64,10.82,66.0,7.96,84.78,151.86],["21-05-08",0,5,1940.0,2,1,0,70.81,0.0,1869.19,98.54,630.0,31.85,760.39,1108.8],["21-05-08",2,12,410.0,2,3,0,13.74,0.0,396.26,38.79,136.5,15.92,191.21,205.05],["21-05-10",5,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["21-05-10",1,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["21-05-12",0,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["21-05-12",2,12,380.0,3,-1,10,0.0,13.3,393.3,38.79,136.5,15.92,191.21,202.09],["21-05-13",1,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-05-13",3,7,220.0,2,3,0,7.37,0.0,212.63,10.82,66.0,7.96,84.78,127.85],["21-05-14",0,6,3390.0,2,0,0,118.65,0.0,3271.35,208.54,1280.0,23.88,1512.42,1758.93],["21-05-15",0,7,240.0,1,0,0,3.96,0.0,236.04,10.82,66.0,7.96,84.78,151.26],["21-05-17",5,8,190.0,2,1,0,6.93,0.0,183.07,5.08,54.0,7.96,67.04,116.03],["21-05-19",4,7,220.0,0,-1,0,0.0,0.0,220.0,10.82,66.0,7.96,84.78,135.22],["21-05-22",4,7,210.0,3,-1,6,0.0,7.35,217.35,10.82,66.0,7.96,84.78,132.57],["21-05-24",5,5,1930.0,0,-1,0,0.0,0.0,1930.0,98.54,630.0,31.85,760.39,1169.61],["21-05-25",4,7,240.0,2,1,0,8.76,0.0,231.24,10.82,66.0,7.96,84.78,146.46],["21-05-27",5,12,410.0,2,4,0,13.12,0.0,396.88,38.79,136.5,15.92,191.21,205.67],["21-05-31",1,8,200.0,2,0,0,7.0,0.0,193.0,5.08,54.0,7.96,67.04,125.96],["21-05-31",5,12,400.0,2,1,0,14.6,0.0,385.4,38.79,136.5,15.92,191.21,194.19],["21-05-31",0,4,490.0,3,-1,10,0.0,17.15,507.15,15.73,208.0,11.94,235.67,271.48],["21-05-31",0,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["21-05-31",2,8,190.0,1,3,0,2.94,0.0,187.06,5.08,54.0,7.96,67.04,120.02],["21-06-02",1,8,190.0,2,2,0,7.41,0.0,182.59,5.08,54.0,7.96,67.04,115.55],["21-06-07",1,12,360.0,0,-1,0,0.0,0.0,360.0,38.79,136.5,15.92,191.21,168.79],["21-06-10",5,11,90.0,1,2,0,1.71,0.0,88.29,6.43,22.5,3.98,32.91,55.38],["21-06-12",0,6,3380.0,2,1,0,123.37,0.0,3256.63,208.54,1280.0,23.88,1512.42,1744.21],["21-06-14",4,12,370.0,1,1,0,6.48,0.0,363.52,38.79,136.5,15.92,191.21,172.31],["21-06-18",5,14,1420.0,2,0,0,49.7,0.0,1370.3,44.23,580.0,39.81,664.04,706.26],["21-06-19",1,7,230.0,2,1,0,8.39,0.0,221.61,10.82,66.0,7.96,84.78,136.83],["21-06-19",1,7,210.0,0,-1,0,0.0,0.0,210.0,10.82,66.0,7.96,84.78,125.22],["21-06-19",3,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["21-06-19",3,15,950.0,0,-1,0,0.0,0.0,950.0,26.33,380.0,23.88,430.21,519.79],["21-06-21",3,9,240.0,2,1,0,8.76,0.0,231.24,24.09,72.0,10.62,106.71,124.53],["21-06-21",0,15,1040.0,3,-1,12,0.0,46.8,1086.8,26.33,380.0,23.88,430.21,656.59],["21-06-21",5,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["21-06-24",1,5,1870.0,1,4,0,26.18,0.0,1843.82,98.54,630.0,31.85,760.39,1083.43],["21-06-26",4,8,170.0,1,0,0,2.81,0.0,167.19,5.08,54.0,7.96,67.04,100.15],["21-06-28",1,9,260.0,0,-1,0,0.0,0.0,260.0,24.09,72.0,10.62,106.71,153.29],["21-06-28",4,12,410.0,1,3,0,6.35,0.0,403.65,38.79,136.5,15.92,191.21,212.44],["21-06-29",3,7,220.0,2,4,0,7.04,0.0,212.96,10.82,66.0,7.96,84.78,128.18],["21-06-30",5,0,130.0,2,1,0,4.75,0.0,125.25,6.28,39.0,5.31,50.59,74.66],["21-06-30",5,12,360.0,0,-1,0,0.0,0.0,360.0,38.79,136.5,15.92,191.21,168.79],["21-07-01",4,4,480.0,3,-1,12,0.0,21.6,501.6,15.73,208.0,11.94,235.67,265.93],["21-07-03",3,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["21-07-03",2,7,220.0,1,1,0,3.85,0.0,216.15,10.82,66.0,7.96,84.78,131.37],["21-07-03",4,15,1030.0,0,-1,0,0.0,0.0,1030.0,26.33,380.0,23.88,430.21,599.79],["21-07-07",3,12,390.0,0,-1,0,0.0,0.0,390.0,38.79,136.5,15.92,191.21,198.79],["21-07-08",1,12,390.0,3,-1,3,0.0,9.75,399.75,38.79,136.5,15.92,191.21,208.54],["21-07-09",3,2,150.0,3,-1,3,0.0,3.75,153.75,2.77,37.5,11.94,52.21,101.54],["21-07-09",1,12,420.0,3,-1,10,0.0,14.7,434.7,38.79,136.5,15.92,191.21,243.49],["21-07-10",2,2,160.0,2,1,0,5.84,0.0,154.16,2.77,37.5,11.94,52.21,101.95],["21-07-12",1,5,1760.0,0,-1,0,0.0,0.0,1760.0,98.54,630.0,31.85,760.39,999.61],["21-07-13",3,12,410.0,2,2,0,15.99,0.0,394.01,38.79,136.5,15.92,191.21,202.8],["21-07-14",2,11,90.0,1,1,0,1.58,0.0,88.42,6.43,22.5,3.98,32.91,55.51],["21-07-21",3,8,180.0,1,1,0,3.15,0.0,176.85,5.08,54.0,7.96,67.04,109.81],["21-07-21",0,8,180.0,1,2,0,3.42,0.0,176.58,5.08,54.0,7.96,67.04,109.54],["21-07-21",4,8,180.0,2,2,0,7.02,0.0,172.98,5.08,54.0,7.96,67.04,105.94],["21-07-23",5,7,240.0,3,-1,12,0.0,10.8,250.8,10.82,66.0,7.96,84.78,166.02],["21-07-26",0,0,120.0,0,-1,0,0.0,0.0,120.0,6.28,39.0,5.31,50.59,69.41],["21-07-26",1,12,430.0,2,4,0,13.76,0.0,416.24,38.79,136.5,15.92,191.21,225.03],["21-07-27",5,8,190.0,1,2,0,3.61,0.0,186.39,5.08,54.0,7.96,67.04,119.35],["21-07-27",1,13,170.0,1,2,0,3.23,0.0,166.77,7.4,48.0,7.96,63.36,103.41],["21-07-28",2,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["21-07-28",4,4,500.0,2,4,0,16.0,0.0,484.0,15.73,208.0,11.94,235.67,248.33],["21-07-29",5,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["21-07-29",0,4,560.0,0,-1,0,0.0,0.0,560.0,15.73,208.0,11.94,235.67,324.33],["21-07-31",2,12,380.0,0,-1,0,0.0,0.0,380.0,38.79,136.5,15.92,191.21,188.79],["21-08-03",5,8,170.0,0,-1,0,0.0,0.0,170.0,5.08,54.0,7.96,67.04,102.96],["21-08-03",4,6,3520.0,0,-1,0,0.0,0.0,3520.0,208.54,1280.0,23.88,1512.42,2007.58],["21-08-03",1,11,80.0,0,-1,0,0.0,0.0,80.0,6.43,22.5,3.98,32.91,47.09],["21-08-05",2,12,400.0,1,4,0,5.6,0.0,394.4,38.79,136.5,15.92,191.21,203.19],["21-08-07",2,2,140.0,2,0,0,4.9,0.0,135.1,2.77,37.5,11.94,52.21,82.89],["21-08-09",3,4,560.0,0,-1,0,0.0,0.0,560.0,15.73,208.0,11.94,235.67,324.33],["21-08-09",0,14,1440.0,2,2,0,56.16,0.0,1383.84,44.23,580.0,39.81,664.04,719.8],["21-08-11",5,0,120.0,1,0,0,1.98,0.0,118.02,6.28,39.0,5.31,50.59,67.43],["21-08-14",3,14,1440.0,1,2,0,27.36,0.0,1412.64,44.23,580.0,39.81,664.04,748.6],["21-08-16",1,12,380.0,2,2,0,14.82,0.0,365.18,38.79,136.5,15.92,191.21,173.97],["21-08-17",1,2,150.0,1,3,0,2.33,0.0,147.67,2.77,37.5,11.94,52.21,95.46],["21-08-19",3,1,910.0,0,-1,0,0.0,0.0,910.0,59.21,311.5,23.88,394.59,515.41],["21-08-20",1,8,170.0,1,2,0,3.23,0.0,166.77,5.08,54.0,7.96,67.04,99.73],["21-08-23",4,12,380.0,2,3,0,12.73,0.0,367.27,38.79,136.5,15.92,191.21,176.06],["21-08-28",5,1,850.0,1,2,0,16.15,0.0,833.85,59.21,311.5,23.88,394.59,439.26],["21-08-30",1,0,130.0,2,0,0,4.55,0.0,125.45,6.28,39.0,5.31,50.59,74.86],["21-09-02",1,15,970.0,2,2,0,37.83,0.0,932.17,26.33,380.0,23.88,430.21,501.96],["21-09-02",5,2,160.0,1,3,0,2.48,0.0,157.52,2.77,37.5,11.94,52.21,105.31],["21-09-06",4,2,140.0,0,-1,0,0.0,0.0,140.0,2.77,37.5,11.94,52.21,87.79],["21-09-07",2,7,210.0,0,-1,0,0.0,0.0,210.0,10.82,66.0,7.96,84.78,125.22],["21-09-07",5,9,230.0,3,-1,12,0.0,10.35,240.35,24.09,72.0,10.62,106.71,133.64],["21-09-08",4,12,420.0,1,0,0,6.93,0.0,413.07,38.79,136.5,15.92,191.21,221.86],["21-09-08",4,3,730.0,1,0,0,12.04,0.0,717.96,32.23,238.0,15.92,286.15,431.81],["21-09-10",0,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["21-09-14",5,0,140.0,3,-1,2,0.0,3.5,143.5,6.28,39.0,5.31,50.59,92.91],["21-09-14",2,7,220.0,2,0,0,7.7,0.0,212.3,10.82,66.0,7.96,84.78,127.52],["21-09-16",0,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["21-09-16",2,2,140.0,3,-1,6,0.0,4.9,144.9,2.77,37.5,11.94,52.21,92.69],["21-09-16",3,12,420.0,0,-1,0,0.0,0.0,420.0,38.79,136.5,15.92,191.21,228.79],["21-09-16",4,12,380.0,2,3,0,12.73,0.0,367.27,38.79,136.5,15.92,191.21,176.06],["21-09-17",2,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["21-09-17",3,9,230.0,0,-1,0,0.0,0.0,230.0,24.09,72.0,10.62,106.71,123.29],["21-09-20",3,12,410.0,0,-1,0,0.0,0.0,410.0,38.79,136.5,15.92,191.21,218.79],["21-09-21",3,0,140.0,1,1,0,2.45,0.0,137.55,6.28,39.0,5.31,50.59,86.96],["21-09-22",3,8,180.0,2,1,0,6.57,0.0,173.43,5.08,54.0,7.96,67.04,106.39],["21-09-23",5,7,220.0,3,-1,6,0.0,7.7,227.7,10.82,66.0,7.96,84.78,142.92],["21-09-24",0,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["21-09-24",2,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["21-09-28",1,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["21-09-28",4,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["21-10-01",5,10,800.0,0,-1,0,0.0,0.0,800.0,37.69,262.5,15.92,316.11,483.89],["21-10-04",2,12,400.0,2,2,0,15.6,0.0,384.4,38.79,136.5,15.92,191.21,193.19],["21-10-04",2,8,190.0,1,3,0,2.94,0.0,187.06,5.08,54.0,7.96,67.04,120.02],["21-10-05",0,11,80.0,1,2,0,1.52,0.0,78.48,6.43,22.5,3.98,32.91,45.57],["21-10-06",5,12,400.0,0,-1,0,0.0,0.0,400.0,38.79,136.5,15.92,191.21,208.79],["21-10-06",4,3,690.0,0,-1,0,0.0,0.0,690.0,32.23,238.0,15.92,286.15,403.85],["21-10-06",0,5,1810.0,0,-1,0,0.0,0.0,1810.0,98.54,630.0,31.85,760.39,1049.61],["21-10-07",1,11,100.0,1,2,0,1.9,0.0,98.1,6.43,22.5,3.98,32.91,65.19],["21-10-09",3,2,150.0,1,1,0,2.63,0.0,147.37,2.77,37.5,11.94,52.21,95.16],["21-10-13",0,8,170.0,2,0,0,5.95,0.0,164.05,5.08,54.0,7.96,67.04,97.01],["21-10-14",2,2,160.0,1,1,0,2.8,0.0,157.2,2.77,37.5,11.94,52.21,104.99],["21-10-15",1,12,410.0,2,3,0,13.74,0.0,396.26,38.79,136.5,15.92,191.21,205.05],["21-10-15",3,3,730.0,1,3,0,11.31,0.0,718.69,32.23,238.0,15.92,286.15,432.54],["21-10-19",4,12,400.0,3,-1,12,0.0,18.0,418.0,38.79,136.5,15.92,191.21,226.79],["21-10-20",2,12,380.0,2,2,0,14.82,0.0,365.18,38.79,136.5,15.92,191.21,173.97],["21-10-22",1,11,90.0,2,0,0,3.15,0.0,86.85,6.43,22.5,3.98,32.91,53.94],["21-10-22",1,8,190.0,2,2,0,7.41,0.0,182.59,5.08,54.0,7.96,67.04,115.55],["21-10-22",3,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["21-10-25",4,6,3000.0,2,0,0,105.0,0.0,2895.0,208.54,1280.0,23.88,1512.42,1382.58],["21-10-27",4,0,130.0,1,4,0,1.82,0.0,128.18,6.28,39.0,5.31,50.59,77.59],["21-10-27",5,11,90.0,2,4,0,2.88,0.0,87.12,6.43,22.5,3.98,32.91,54.21],["21-10-29",4,11,90.0,2,1,0,3.28,0.0,86.72,6.43,22.5,3.98,32.91,53.81],["21-11-08",2,13,160.0,2,1,0,5.84,0.0,154.16,7.4,48.0,7.96,63.36,90.8],["21-11-10",5,13,160.0,2,4,0,5.12,0.0,154.88,7.4,48.0,7.96,63.36,91.52],["21-11-11",0,1,870.0,2,1,0,31.75,0.0,838.25,59.21,311.5,23.88,394.59,443.66],["21-11-12",1,14,1500.0,3,-1,3,0.0,37.5,1537.5,44.23,580.0,39.81,664.04,873.46],["21-11-12",3,10,770.0,1,0,0,12.71,0.0,757.29,37.69,262.5,15.92,316.11,441.18],["21-11-13",3,9,230.0,1,3,0,3.56,0.0,226.44,24.09,72.0,10.62,106.71,119.73],["21-11-15",3,14,1590.0,0,-1,0,0.0,0.0,1590.0,44.23,580.0,39.81,664.04,925.96],["21-11-16",3,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-11-16",5,7,200.0,1,2,0,3.8,0.0,196.2,10.82,66.0,7.96,84.78,111.42],["21-11-16",0,3,720.0,0,-1,0,0.0,0.0,720.0,32.23,238.0,15.92,286.15,433.85],["21-11-23",3,12,360.0,2,3,0,12.06,0.0,347.94,38.79,136.5,15.92,191.21,156.73],["21-11-25",0,12,400.0,1,2,0,7.6,0.0,392.4,38.79,136.5,15.92,191.21,201.19],["21-11-26",0,8,190.0,2,0,0,6.65,0.0,183.35,5.08,54.0,7.96,67.04,116.31],["21-11-27",5,8,190.0,1,2,0,3.61,0.0,186.39,5.08,54.0,7.96,67.04,119.35],["21-11-27",1,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["21-11-29",5,12,390.0,1,3,0,6.04,0.0,383.96,38.79,136.5,15.92,191.21,192.75],["21-11-30",4,12,400.0,0,-1,0,0.0,0.0,400.0,38.79,136.5,15.92,191.21,208.79],["21-12-01",5,2,150.0,3,-1,3,0.0,3.75,153.75,2.77,37.5,11.94,52.21,101.54],["21-12-02",2,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["21-12-02",5,4,490.0,2,1,0,17.88,0.0,472.12,15.73,208.0,11.94,235.67,236.45],["21-12-04",0,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["21-12-06",3,3,680.0,2,4,0,21.76,0.0,658.24,32.23,238.0,15.92,286.15,372.09],["21-12-08",1,12,370.0,0,-1,0,0.0,0.0,370.0,38.79,136.5,15.92,191.21,178.79],["21-12-09",5,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-12-11",5,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["21-12-11",2,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["21-12-11",4,9,240.0,2,2,0,9.36,0.0,230.64,24.09,72.0,10.62,106.71,123.93],["21-12-13",5,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["21-12-15",2,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["21-12-15",2,3,630.0,1,2,0,11.97,0.0,618.03,32.23,238.0,15.92,286.15,331.88],["21-12-16",2,12,380.0,2,1,0,13.87,0.0,366.13,38.79,136.5,15.92,191.21,174.92],["21-12-24",3,6,3050.0,2,2,0,118.95,0.0,2931.05,208.54,1280.0,23.88,1512.42,1418.63],["21-12-24",3,13,150.0,2,1,0,5.47,0.0,144.53,7.4,48.0,7.96,63.36,81.17],["21-12-25",2,13,160.0,3,-1,12,0.0,7.2,167.2,7.4,48.0,7.96,63.36,103.84],["21-12-25",4,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["21-12-25",3,7,220.0,2,2,0,8.58,0.0,211.42,10.82,66.0,7.96,84.78,126.64],["21-12-28",3,7,210.0,3,-1,6,0.0,7.35,217.35,10.82,66.0,7.96,84.78,132.57],["21-12-29",3,1,910.0,2,4,0,29.12,0.0,880.88,59.21,311.5,23.88,394.59,486.29],["21-12-30",4,3,730.0,2,0,0,25.55,0.0,704.45,32.23,238.0,15.92,286.15,418.3],["22-01-04",2,14,1420.0,2,0,0,49.7,0.0,1370.3,44.23,580.0,39.81,664.04,706.26],["22-01-05",5,11,90.0,2,2,0,3.51,0.0,86.49,6.43,22.5,3.98,32.91,53.58],["22-01-06",2,15,1020.0,1,3,0,15.81,0.0,1004.19,26.33,380.0,23.88,430.21,573.98],["22-01-06",3,9,240.0,3,-1,6,0.0,8.4,248.4,24.09,72.0,10.62,106.71,141.69],["22-01-07",3,7,240.0,1,3,0,3.72,0.0,236.28,10.82,66.0,7.96,84.78,151.5],["22-01-10",1,7,220.0,2,1,0,8.03,0.0,211.97,10.82,66.0,7.96,84.78,127.19],["22-01-11",0,7,220.0,0,-1,0,0.0,0.0,220.0,10.82,66.0,7.96,84.78,135.22],["22-01-12",2,11,100.0,1,3,0,1.55,0.0,98.45,6.43,22.5,3.98,32.91,65.54],["22-01-12",1,9,260.0,0,-1,0,0.0,0.0,260.0,24.09,72.0,10.62,106.71,153.29],["22-01-12",1,1,990.0,0,-1,0,0.0,0.0,990.0,59.21,311.5,23.88,394.59,595.41],["22-01-14",4,2,170.0,2,0,0,5.95,0.0,164.05,2.77,37.5,11.94,52.21,111.84],["22-01-15",5,12,400.0,0,-1,0,0.0,0.0,400.0,38.79,136.5,15.92,191.21,208.79],["22-01-21",3,9,240.0,2,1,0,8.76,0.0,231.24,24.09,72.0,10.62,106.71,124.53],["22-01-21",2,12,440.0,1,0,0,7.26,0.0,432.74,38.79,136.5,15.92,191.21,241.53],["22-01-22",3,0,150.0,3,-1,10,0.0,5.25,155.25,6.28,39.0,5.31,50.59,104.66],["22-01-24",4,4,510.0,2,3,0,17.09,0.0,492.91,15.73,208.0,11.94,235.67,257.24],["22-01-25",2,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["22-01-27",0,9,250.0,0,-1,0,0.0,0.0,250.0,24.09,72.0,10.62,106.71,143.29],["22-01-28",3,0,130.0,1,4,0,1.82,0.0,128.18,6.28,39.0,5.31,50.59,77.59],["22-01-28",1,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["22-01-31",0,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["22-02-02",5,8,200.0,2,0,0,7.0,0.0,193.0,5.08,54.0,7.96,67.04,125.96],["22-02-02",1,8,190.0,2,0,0,6.65,0.0,183.35,5.08,54.0,7.96,67.04,116.31],["22-02-03",1,6,3420.0,2,2,0,133.38,0.0,3286.62,208.54,1280.0,23.88,1512.42,1774.2],["22-02-04",4,6,3610.0,0,-1,0,0.0,0.0,3610.0,208.54,1280.0,23.88,1512.42,2097.58],["22-02-08",0,6,3680.0,2,4,0,117.76,0.0,3562.24,208.54,1280.0,23.88,1512.42,2049.82],["22-02-08",1,2,160.0,2,0,0,5.6,0.0,154.4,2.77,37.5,11.94,52.21,102.19],["22-02-10",3,5,1990.0,1,4,0,27.86,0.0,1962.14,98.54,630.0,31.85,760.39,1201.75],["22-02-11",4,12,440.0,0,-1,0,0.0,0.0,440.0,38.79,136.5,15.92,191.21,248.79],["22-02-11",2,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["22-02-14",1,8,180.0,3,-1,2,0.0,4.5,184.5,5.08,54.0,7.96,67.04,117.46],["22-02-16",5,12,450.0,3,-1,6,0.0,15.75,465.75,38.79,136.5,15.92,191.21,274.54],["22-02-19",3,2,160.0,2,1,0,5.84,0.0,154.16,2.77,37.5,11.94,52.21,101.95],["22-02-21",2,12,390.0,0,-1,0,0.0,0.0,390.0,38.79,136.5,15.92,191.21,198.79],["22-02-24",4,8,190.0,2,4,0,6.08,0.0,183.92,5.08,54.0,7.96,67.04,116.88],["22-02-25",2,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["22-02-26",1,15,960.0,2,4,0,30.72,0.0,929.28,26.33,380.0,23.88,430.21,499.07],["22-02-26",2,10,820.0,0,-1,0,0.0,0.0,820.0,37.69,262.5,15.92,316.11,503.89],["22-02-28",4,13,180.0,2,4,0,5.76,0.0,174.24,7.4,48.0,7.96,63.36,110.88],["22-03-02",2,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["22-03-03",4,8,210.0,1,0,0,3.47,0.0,206.53,5.08,54.0,7.96,67.04,139.49],["22-03-03",0,9,230.0,2,1,0,8.39,0.0,221.61,24.09,72.0,10.62,106.71,114.9],["22-03-10",1,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-03-11",0,4,580.0,2,4,0,18.56,0.0,561.44,15.73,208.0,11.94,235.67,325.77],["22-03-11",2,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["22-03-18",3,2,150.0,3,-1,6,0.0,5.25,155.25,2.77,37.5,11.94,52.21,103.04],["22-03-19",2,12,390.0,1,4,0,5.46,0.0,384.54,38.79,136.5,15.92,191.21,193.33],["22-03-19",4,8,190.0,2,0,0,6.65,0.0,183.35,5.08,54.0,7.96,67.04,116.31],["22-03-25",0,10,840.0,2,3,0,28.14,0.0,811.86,37.69,262.5,15.92,316.11,495.75],["22-03-29",0,11,90.0,0,-1,0,0.0,0.0,90.0,6.43,22.5,3.98,32.91,57.09],["22-03-30",0,7,220.0,1,4,0,3.08,0.0,216.92,10.82,66.0,7.96,84.78,132.14],["22-03-31",0,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["22-04-01",2,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-04-05",2,4,520.0,2,2,0,20.28,0.0,499.72,15.73,208.0,11.94,235.67,264.05],["22-04-05",2,15,1020.0,2,0,0,35.7,0.0,984.3,26.33,380.0,23.88,430.21,554.09],["22-04-06",4,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["22-04-06",2,8,190.0,2,4,0,6.08,0.0,183.92,5.08,54.0,7.96,67.04,116.88],["22-04-06",5,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["22-04-09",2,12,450.0,1,2,0,8.55,0.0,441.45,38.79,136.5,15.92,191.21,250.24],["22-04-12",5,3,690.0,1,4,0,9.66,0.0,680.34,32.23,238.0,15.92,286.15,394.19],["22-04-14",2,2,160.0,1,2,0,3.04,0.0,156.96,2.77,37.5,11.94,52.21,104.75],["22-04-14",5,7,250.0,2,2,0,9.75,0.0,240.25,10.82,66.0,7.96,84.78,155.47],["22-04-15",0,4,520.0,1,2,0,9.88,0.0,510.12,15.73,208.0,11.94,235.67,274.45],["22-04-18",1,5,2070.0,2,3,0,69.34,0.0,2000.66,98.54,630.0,31.85,760.39,1240.27],["22-04-20",4,14,1410.0,1,1,0,24.68,0.0,1385.32,44.23,580.0,39.81,664.04,721.28],["22-04-20",2,10,850.0,1,3,0,13.18,0.0,836.82,37.69,262.5,15.92,316.11,520.71],["22-04-21",2,12,440.0,3,-1,12,0.0,19.8,459.8,38.79,136.5,15.92,191.21,268.59],["22-04-23",1,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["22-04-23",4,4,510.0,0,-1,0,0.0,0.0,510.0,15.73,208.0,11.94,235.67,274.33],["22-04-26",4,6,3140.0,2,2,0,122.46,0.0,3017.54,208.54,1280.0,23.88,1512.42,1505.12],["22-04-27",5,13,160.0,1,1,0,2.8,0.0,157.2,7.4,48.0,7.96,63.36,93.84],["22-04-27",2,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["22-04-27",5,1,900.0,3,-1,3,0.0,22.5,922.5,59.21,311.5,23.88,394.59,527.91],["22-04-27",2,9,280.0,1,4,0,3.92,0.0,276.08,24.09,72.0,10.62,106.71,169.37],["22-04-27",3,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["22-05-02",3,2,170.0,2,2,0,6.63,0.0,163.37,2.77,37.5,11.94,52.21,111.16],["22-05-02",4,12,420.0,0,-1,0,0.0,0.0,420.0,38.79,136.5,15.92,191.21,228.79],["22-05-04",1,12,390.0,1,1,0,6.83,0.0,383.17,38.79,136.5,15.92,191.21,191.96],["22-05-05",0,2,150.0,1,2,0,2.85,0.0,147.15,2.77,37.5,11.94,52.21,94.94],["22-05-07",0,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["22-05-09",5,7,220.0,2,4,0,7.04,0.0,212.96,10.82,66.0,7.96,84.78,128.18],["22-05-10",0,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-05-12",1,1,930.0,1,2,0,17.67,0.0,912.33,59.21,311.5,23.88,394.59,517.74],["22-05-14",4,4,540.0,2,0,0,18.9,0.0,521.1,15.73,208.0,11.94,235.67,285.43],["22-05-14",5,7,240.0,1,4,0,3.36,0.0,236.64,10.82,66.0,7.96,84.78,151.86],["22-05-16",5,7,250.0,1,3,0,3.88,0.0,246.12,10.82,66.0,7.96,84.78,161.34],["22-05-18",4,2,150.0,2,1,0,5.47,0.0,144.53,2.77,37.5,11.94,52.21,92.32],["22-05-20",4,11,100.0,2,1,0,3.65,0.0,96.35,6.43,22.5,3.98,32.91,63.44],["22-05-20",5,12,410.0,1,1,0,7.18,0.0,402.82,38.79,136.5,15.92,191.21,211.61],["22-05-24",5,2,160.0,2,2,0,6.24,0.0,153.76,2.77,37.5,11.94,52.21,101.55],["22-05-26",0,4,540.0,0,-1,0,0.0,0.0,540.0,15.73,208.0,11.94,235.67,304.33],["22-05-27",5,7,250.0,2,3,0,8.38,0.0,241.62,10.82,66.0,7.96,84.78,156.84],["22-06-01",0,7,230.0,3,-1,3,0.0,5.75,235.75,10.82,66.0,7.96,84.78,150.97],["22-06-03",5,2,160.0,1,4,0,2.24,0.0,157.76,2.77,37.5,11.94,52.21,105.55],["22-06-06",1,9,270.0,2,0,0,9.45,0.0,260.55,24.09,72.0,10.62,106.71,153.84],["22-06-10",3,3,660.0,3,-1,3,0.0,16.5,676.5,32.23,238.0,15.92,286.15,390.35],["22-06-11",0,12,390.0,1,4,0,5.46,0.0,384.54,38.79,136.5,15.92,191.21,193.33],["22-06-11",1,12,410.0,0,-1,0,0.0,0.0,410.0,38.79,136.5,15.92,191.21,218.79],["22-06-17",4,11,90.0,1,0,0,1.49,0.0,88.51,6.43,22.5,3.98,32.91,55.6],["22-06-18",1,2,160.0,2,1,0,5.84,0.0,154.16,2.77,37.5,11.94,52.21,101.95],["22-06-21",3,6,3250.0,3,-1,10,0.0,113.75,3363.75,208.54,1280.0,23.88,1512.42,1851.33],["22-06-22",3,13,160.0,0,-1,0,0.0,0.0,160.0,7.4,48.0,7.96,63.36,96.64],["22-06-24",4,9,240.0,3,-1,6,0.0,8.4,248.4,24.09,72.0,10.62,106.71,141.69],["22-06-24",2,5,2050.0,0,-1,0,0.0,0.0,2050.0,98.54,630.0,31.85,760.39,1289.61],["22-06-28",4,10,800.0,2,0,0,28.0,0.0,772.0,37.69,262.5,15.92,316.11,455.89],["22-06-28",1,7,230.0,1,3,0,3.56,0.0,226.44,10.82,66.0,7.96,84.78,141.66],["22-06-28",3,15,1040.0,0,-1,0,0.0,0.0,1040.0,26.33,380.0,23.88,430.21,609.79],["22-06-29",5,7,250.0,1,4,0,3.5,0.0,246.5,10.82,66.0,7.96,84.78,161.72],["22-06-30",1,2,150.0,2,0,0,5.25,0.0,144.75,2.77,37.5,11.94,52.21,92.54],["22-06-30",5,12,390.0,0,-1,0,0.0,0.0,390.0,38.79,136.5,15.92,191.21,198.79],["22-07-01",5,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["22-07-02",0,10,730.0,1,2,0,13.87,0.0,716.13,37.69,262.5,15.92,316.11,400.02],["22-07-04",5,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["22-07-04",3,8,180.0,0,-1,0,0.0,0.0,180.0,5.08,54.0,7.96,67.04,112.96],["22-07-06",0,12,400.0,1,0,0,6.6,0.0,393.4,38.79,136.5,15.92,191.21,202.19],["22-07-06",5,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["22-07-07",4,2,170.0,1,4,0,2.38,0.0,167.62,2.77,37.5,11.94,52.21,115.41],["22-07-08",4,11,90.0,1,0,0,1.49,0.0,88.51,6.43,22.5,3.98,32.91,55.6],["22-07-11",1,8,180.0,0,-1,0,0.0,0.0,180.0,5.08,54.0,7.96,67.04,112.96],["22-07-11",2,7,240.0,3,-1,3,0.0,6.0,246.0,10.82,66.0,7.96,84.78,161.22],["22-07-13",0,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["22-07-18",4,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["22-07-21",1,12,440.0,1,2,0,8.36,0.0,431.64,38.79,136.5,15.92,191.21,240.43],["22-07-27",0,14,1580.0,1,0,0,26.07,0.0,1553.93,44.23,580.0,39.81,664.04,889.89],["22-08-02",4,7,210.0,1,4,0,2.94,0.0,207.06,10.82,66.0,7.96,84.78,122.28],["22-08-02",5,7,220.0,2,4,0,7.04,0.0,212.96,10.82,66.0,7.96,84.78,128.18],["22-08-04",5,9,240.0,0,-1,0,0.0,0.0,240.0,24.09,72.0,10.62,106.71,133.29],["22-08-04",0,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["22-08-06",0,7,250.0,1,0,0,4.12,0.0,245.88,10.82,66.0,7.96,84.78,161.1],["22-08-11",0,6,3710.0,0,-1,0,0.0,0.0,3710.0,208.54,1280.0,23.88,1512.42,2197.58],["22-08-11",1,7,220.0,3,-1,10,0.0,7.7,227.7,10.82,66.0,7.96,84.78,142.92],["22-08-11",4,9,250.0,2,1,0,9.12,0.0,240.88,24.09,72.0,10.62,106.71,134.17],["22-08-11",4,9,260.0,0,-1,0,0.0,0.0,260.0,24.09,72.0,10.62,106.71,153.29],["22-08-13",4,12,400.0,1,3,0,6.2,0.0,393.8,38.79,136.5,15.92,191.21,202.59],["22-08-13",0,1,970.0,0,-1,0,0.0,0.0,970.0,59.21,311.5,23.88,394.59,575.41],["22-08-15",3,5,1800.0,1,2,0,34.2,0.0,1765.8,98.54,630.0,31.85,760.39,1005.41],["22-08-15",0,1,1010.0,0,-1,0,0.0,0.0,1010.0,59.21,311.5,23.88,394.59,615.41],["22-08-16",4,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-08-19",2,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-08-20",4,11,90.0,2,0,0,3.15,0.0,86.85,6.43,22.5,3.98,32.91,53.94],["22-08-20",3,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-08-24",0,8,200.0,2,3,0,6.7,0.0,193.3,5.08,54.0,7.96,67.04,126.26],["22-08-26",5,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["22-08-30",2,7,240.0,2,0,0,8.4,0.0,231.6,10.82,66.0,7.96,84.78,146.82],["22-08-30",2,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["22-08-31",5,7,250.0,1,3,0,3.88,0.0,246.12,10.82,66.0,7.96,84.78,161.34],["22-09-05",3,7,220.0,0,-1,0,0.0,0.0,220.0,10.82,66.0,7.96,84.78,135.22],["22-09-13",5,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["22-09-15",0,7,220.0,0,-1,0,0.0,0.0,220.0,10.82,66.0,7.96,84.78,135.22],["22-09-15",4,11,100.0,2,4,0,3.2,0.0,96.8,6.43,22.5,3.98,32.91,63.89],["22-09-16",1,6,3360.0,0,-1,0,0.0,0.0,3360.0,208.54,1280.0,23.88,1512.42,1847.58],["22-09-17",3,14,1530.0,1,0,0,25.25,0.0,1504.75,44.23,580.0,39.81,664.04,840.71],["22-09-20",2,5,1830.0,2,1,0,66.8,0.0,1763.2,98.54,630.0,31.85,760.39,1002.81],["22-09-21",0,13,160.0,0,-1,0,0.0,0.0,160.0,7.4,48.0,7.96,63.36,96.64],["22-09-24",0,7,240.0,1,3,0,3.72,0.0,236.28,10.82,66.0,7.96,84.78,151.5],["22-09-24",3,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["22-09-26",1,12,410.0,0,-1,0,0.0,0.0,410.0,38.79,136.5,15.92,191.21,218.79],["22-09-28",3,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["22-09-29",4,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["22-09-30",2,14,1620.0,1,4,0,22.68,0.0,1597.32,44.23,580.0,39.81,664.04,933.28],["22-09-30",0,4,520.0,3,-1,2,0.0,13.0,533.0,15.73,208.0,11.94,235.67,297.33],["22-10-04",5,11,100.0,1,4,0,1.4,0.0,98.6,6.43,22.5,3.98,32.91,65.69],["22-10-08",1,12,420.0,0,-1,0,0.0,0.0,420.0,38.79,136.5,15.92,191.21,228.79],["22-10-08",0,2,160.0,1,4,0,2.24,0.0,157.76,2.77,37.5,11.94,52.21,105.55],["22-10-10",1,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["22-10-12",5,1,940.0,1,1,0,16.45,0.0,923.55,59.21,311.5,23.88,394.59,528.96],["22-10-15",5,4,590.0,2,3,0,19.77,0.0,570.23,15.73,208.0,11.94,235.67,334.56],["22-10-17",3,2,160.0,2,0,0,5.6,0.0,154.4,2.77,37.5,11.94,52.21,102.19],["22-10-19",5,15,1020.0,2,2,0,39.78,0.0,980.22,26.33,380.0,23.88,430.21,550.01],["22-10-19",0,15,1030.0,3,-1,6,0.0,36.05,1066.05,26.33,380.0,23.88,430.21,635.84],["22-10-21",2,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["22-10-22",0,8,190.0,3,-1,6,0.0,6.65,196.65,5.08,54.0,7.96,67.04,129.61],["22-10-22",5,10,780.0,0,-1,0,0.0,0.0,780.0,37.69,262.5,15.92,316.11,463.89],["22-10-22",3,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["22-10-22",1,12,420.0,2,0,0,14.7,0.0,405.3,38.79,136.5,15.92,191.21,214.09],["22-10-27",4,3,690.0,0,-1,0,0.0,0.0,690.0,32.23,238.0,15.92,286.15,403.85],["22-10-28",2,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["22-10-28",4,7,250.0,2,4,0,8.0,0.0,242.0,10.82,66.0,7.96,84.78,157.22],["22-10-28",2,12,430.0,1,0,0,7.1,0.0,422.9,38.79,136.5,15.92,191.21,231.69],["22-10-29",0,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["22-11-02",4,2,170.0,1,1,0,2.98,0.0,167.02,2.77,37.5,11.94,52.21,114.81],["22-11-02",0,1,870.0,2,1,0,31.75,0.0,838.25,59.21,311.5,23.88,394.59,443.66],["22-11-05",1,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["22-11-07",0,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["22-11-08",1,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["22-11-09",2,2,150.0,2,3,0,5.03,0.0,144.97,2.77,37.5,11.94,52.21,92.76],["22-11-09",1,8,190.0,1,1,0,3.33,0.0,186.67,5.08,54.0,7.96,67.04,119.63],["22-11-12",1,7,230.0,2,1,0,8.39,0.0,221.61,10.82,66.0,7.96,84.78,136.83],["22-11-12",0,15,1090.0,2,0,0,38.15,0.0,1051.85,26.33,380.0,23.88,430.21,621.64],["22-11-14",5,7,240.0,2,3,0,8.04,0.0,231.96,10.82,66.0,7.96,84.78,147.18],["22-11-14",5,15,960.0,0,-1,0,0.0,0.0,960.0,26.33,380.0,23.88,430.21,529.79],["22-11-15",2,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["22-11-15",0,15,1000.0,2,4,0,32.0,0.0,968.0,26.33,380.0,23.88,430.21,537.79],["22-11-17",3,2,160.0,2,1,0,5.84,0.0,154.16,2.77,37.5,11.94,52.21,101.95],["22-11-17",4,9,240.0,0,-1,0,0.0,0.0,240.0,24.09,72.0,10.62,106.71,133.29],["22-11-18",1,0,150.0,0,-1,0,0.0,0.0,150.0,6.28,39.0,5.31,50.59,99.41],["22-11-22",5,15,960.0,3,-1,2,0.0,24.0,984.0,26.33,380.0,23.88,430.21,553.79],["22-11-22",4,7,240.0,1,2,0,4.56,0.0,235.44,10.82,66.0,7.96,84.78,150.66],["22-11-22",5,6,3130.0,1,1,0,54.78,0.0,3075.22,208.54,1280.0,23.88,1512.42,1562.8],["22-11-23",1,7,250.0,1,4,0,3.5,0.0,246.5,10.82,66.0,7.96,84.78,161.72],["22-11-23",1,12,450.0,2,4,0,14.4,0.0,435.6,38.79,136.5,15.92,191.21,244.39],["22-11-24",0,1,960.0,0,-1,0,0.0,0.0,960.0,59.21,311.5,23.88,394.59,565.41],["22-11-25",3,12,430.0,0,-1,0,0.0,0.0,430.0,38.79,136.5,15.92,191.21,238.79],["22-11-28",0,7,240.0,3,-1,6,0.0,8.4,248.4,10.82,66.0,7.96,84.78,163.62],["22-11-29",4,13,160.0,2,2,0,6.24,0.0,153.76,7.4,48.0,7.96,63.36,90.4],["22-11-29",0,15,940.0,0,-1,0,0.0,0.0,940.0,26.33,380.0,23.88,430.21,509.79],["22-11-30",3,12,440.0,3,-1,3,0.0,11.0,451.0,38.79,136.5,15.92,191.21,259.79],["22-11-30",3,8,180.0,0,-1,0,0.0,0.0,180.0,5.08,54.0,7.96,67.04,112.96],["22-12-01",0,7,220.0,2,0,0,7.7,0.0,212.3,10.82,66.0,7.96,84.78,127.52],["22-12-05",3,0,130.0,0,-1,0,0.0,0.0,130.0,6.28,39.0,5.31,50.59,79.41],["22-12-05",0,1,890.0,0,-1,0,0.0,0.0,890.0,59.21,311.5,23.88,394.59,495.41],["22-12-05",3,8,180.0,2,1,0,6.57,0.0,173.43,5.08,54.0,7.96,67.04,106.39],["22-12-06",2,8,200.0,2,2,0,7.8,0.0,192.2,5.08,54.0,7.96,67.04,125.16],["22-12-07",1,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["22-12-09",1,15,1050.0,1,2,0,19.95,0.0,1030.05,26.33,380.0,23.88,430.21,599.84],["22-12-10",3,15,940.0,1,4,0,13.16,0.0,926.84,26.33,380.0,23.88,430.21,496.63],["22-12-13",3,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["22-12-15",0,6,3190.0,2,0,0,111.65,0.0,3078.35,208.54,1280.0,23.88,1512.42,1565.93],["22-12-15",1,13,160.0,0,-1,0,0.0,0.0,160.0,7.4,48.0,7.96,63.36,96.64],["22-12-16",4,12,420.0,3,-1,6,0.0,14.7,434.7,38.79,136.5,15.92,191.21,243.49],["22-12-17",5,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["22-12-17",4,8,200.0,1,2,0,3.8,0.0,196.2,5.08,54.0,7.96,67.04,129.16],["22-12-19",0,3,660.0,2,0,0,23.1,0.0,636.9,32.23,238.0,15.92,286.15,350.75],["22-12-19",0,12,420.0,2,4,0,13.44,0.0,406.56,38.79,136.5,15.92,191.21,215.35],["22-12-22",4,11,100.0,1,3,0,1.55,0.0,98.45,6.43,22.5,3.98,32.91,65.54],["22-12-22",5,12,450.0,1,2,0,8.55,0.0,441.45,38.79,136.5,15.92,191.21,250.24],["22-12-24",0,15,980.0,2,1,0,35.77,0.0,944.23,26.33,380.0,23.88,430.21,514.02],["22-12-24",4,7,240.0,3,-1,2,0.0,6.0,246.0,10.82,66.0,7.96,84.78,161.22],["22-12-24",0,0,130.0,2,3,0,4.36,0.0,125.64,6.28,39.0,5.31,50.59,75.05],["22-12-29",5,11,100.0,1,3,0,1.55,0.0,98.45,6.43,22.5,3.98,32.91,65.54],["23-01-03",0,1,960.0,1,1,0,16.8,0.0,943.2,59.21,311.5,23.88,394.59,548.61],["23-01-04",4,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["23-01-05",4,12,430.0,1,1,0,7.53,0.0,422.47,38.79,136.5,15.92,191.21,231.26],["23-01-05",4,10,780.0,2,0,0,27.3,0.0,752.7,37.69,262.5,15.92,316.11,436.59],["23-01-06",0,12,440.0,2,2,0,17.16,0.0,422.84,38.79,136.5,15.92,191.21,231.63],["23-01-06",4,4,600.0,0,-1,0,0.0,0.0,600.0,15.73,208.0,11.94,235.67,364.33],["23-01-09",2,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["23-01-09",3,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["23-01-10",1,9,280.0,2,3,0,9.38,0.0,270.62,24.09,72.0,10.62,106.71,163.91],["23-01-10",4,5,1870.0,0,-1,0,0.0,0.0,1870.0,98.54,630.0,31.85,760.39,1109.61],["23-01-11",4,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["23-01-12",1,8,220.0,1,1,0,3.85,0.0,216.15,5.08,54.0,7.96,67.04,149.11],["23-01-13",4,8,210.0,1,2,0,3.99,0.0,206.01,5.08,54.0,7.96,67.04,138.97],["23-01-18",2,8,190.0,2,3,0,6.37,0.0,183.63,5.08,54.0,7.96,67.04,116.59],["23-01-18",1,7,230.0,2,4,0,7.36,0.0,222.64,10.82,66.0,7.96,84.78,137.86],["23-01-18",1,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["23-01-19",0,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["23-01-24",3,12,420.0,2,0,0,14.7,0.0,405.3,38.79,136.5,15.92,191.21,214.09],["23-01-24",1,4,560.0,2,4,0,17.92,0.0,542.08,15.73,208.0,11.94,235.67,306.41],["23-01-25",1,2,180.0,2,2,0,7.02,0.0,172.98,2.77,37.5,11.94,52.21,120.77],["23-01-25",5,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["23-01-25",0,9,280.0,2,1,0,10.22,0.0,269.78,24.09,72.0,10.62,106.71,163.07],["23-01-25",4,13,190.0,3,-1,3,0.0,4.75,194.75,7.4,48.0,7.96,63.36,131.39],["23-01-26",2,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["23-01-26",3,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-01-26",2,8,190.0,2,1,0,6.93,0.0,183.07,5.08,54.0,7.96,67.04,116.03],["23-01-28",3,11,110.0,1,0,0,1.82,0.0,108.18,6.43,22.5,3.98,32.91,75.27],["23-01-30",0,2,170.0,2,1,0,6.2,0.0,163.8,2.77,37.5,11.94,52.21,111.59],["23-02-01",1,5,1910.0,2,2,0,74.49,0.0,1835.51,98.54,630.0,31.85,760.39,1075.12],["23-02-02",0,7,260.0,2,2,0,10.14,0.0,249.86,10.82,66.0,7.96,84.78,165.08],["23-02-02",5,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["23-02-04",0,12,440.0,1,0,0,7.26,0.0,432.74,38.79,136.5,15.92,191.21,241.53],["23-02-07",0,12,460.0,0,-1,0,0.0,0.0,460.0,38.79,136.5,15.92,191.21,268.79],["23-02-07",2,12,470.0,2,0,0,16.45,0.0,453.55,38.79,136.5,15.92,191.21,262.34],["23-02-08",3,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["23-02-09",2,2,150.0,1,0,0,2.48,0.0,147.52,2.77,37.5,11.94,52.21,95.31],["23-02-10",4,1,980.0,1,1,0,17.15,0.0,962.85,59.21,311.5,23.88,394.59,568.26],["23-02-10",1,15,1080.0,1,3,0,16.74,0.0,1063.26,26.33,380.0,23.88,430.21,633.05],["23-02-13",3,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["23-02-13",3,15,1010.0,2,3,0,33.84,0.0,976.16,26.33,380.0,23.88,430.21,545.95],["23-02-15",3,0,160.0,1,0,0,2.64,0.0,157.36,6.28,39.0,5.31,50.59,106.77],["23-02-15",3,12,470.0,2,3,0,15.75,0.0,454.25,38.79,136.5,15.92,191.21,263.04],["23-02-16",0,6,3750.0,2,2,0,146.25,0.0,3603.75,208.54,1280.0,23.88,1512.42,2091.33],["23-02-23",1,11,100.0,2,4,0,3.2,0.0,96.8,6.43,22.5,3.98,32.91,63.89],["23-02-23",5,8,190.0,1,0,0,3.14,0.0,186.86,5.08,54.0,7.96,67.04,119.82],["23-02-25",5,2,160.0,2,2,0,6.24,0.0,153.76,2.77,37.5,11.94,52.21,101.55],["23-02-27",5,0,150.0,1,1,0,2.63,0.0,147.37,6.28,39.0,5.31,50.59,96.78],["23-02-27",0,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["23-03-01",0,15,1050.0,1,2,0,19.95,0.0,1030.05,26.33,380.0,23.88,430.21,599.84],["23-03-03",3,12,430.0,1,2,0,8.17,0.0,421.83,38.79,136.5,15.92,191.21,230.62],["23-03-03",2,4,630.0,0,-1,0,0.0,0.0,630.0,15.73,208.0,11.94,235.67,394.33],["23-03-07",0,12,470.0,0,-1,0,0.0,0.0,470.0,38.79,136.5,15.92,191.21,278.79],["23-03-07",2,13,180.0,1,3,0,2.79,0.0,177.21,7.4,48.0,7.96,63.36,113.85],["23-03-09",3,8,220.0,3,-1,2,0.0,5.5,225.5,5.08,54.0,7.96,67.04,158.46],["23-03-10",0,2,180.0,2,3,0,6.03,0.0,173.97,2.77,37.5,11.94,52.21,121.76],["23-03-10",3,0,150.0,0,-1,0,0.0,0.0,150.0,6.28,39.0,5.31,50.59,99.41],["23-03-11",1,14,1540.0,3,-1,10,0.0,53.9,1593.9,44.23,580.0,39.81,664.04,929.86],["23-03-13",3,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["23-03-14",2,12,410.0,3,-1,2,0.0,10.25,420.25,38.79,136.5,15.92,191.21,229.04],["23-03-15",2,8,220.0,2,4,0,7.04,0.0,212.96,5.08,54.0,7.96,67.04,145.92],["23-03-16",1,2,160.0,1,4,0,2.24,0.0,157.76,2.77,37.5,11.94,52.21,105.55],["23-03-18",1,8,190.0,1,2,0,3.61,0.0,186.39,5.08,54.0,7.96,67.04,119.35],["23-03-18",5,8,200.0,2,4,0,6.4,0.0,193.6,5.08,54.0,7.96,67.04,126.56],["23-03-22",4,11,90.0,1,3,0,1.4,0.0,88.6,6.43,22.5,3.98,32.91,55.69],["23-03-22",1,2,160.0,1,1,0,2.8,0.0,157.2,2.77,37.5,11.94,52.21,104.99],["23-03-23",1,1,1030.0,2,3,0,34.51,0.0,995.49,59.21,311.5,23.88,394.59,600.9],["23-03-27",1,13,190.0,2,4,0,6.08,0.0,183.92,7.4,48.0,7.96,63.36,120.56],["23-03-27",3,13,190.0,2,1,0,6.93,0.0,183.07,7.4,48.0,7.96,63.36,119.71],["23-03-27",3,10,770.0,2,4,0,24.64,0.0,745.36,37.69,262.5,15.92,316.11,429.25],["23-03-29",2,2,160.0,1,2,0,3.04,0.0,156.96,2.77,37.5,11.94,52.21,104.75],["23-03-29",4,4,630.0,0,-1,0,0.0,0.0,630.0,15.73,208.0,11.94,235.67,394.33],["23-03-30",4,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-04-01",0,14,1490.0,1,2,0,28.31,0.0,1461.69,44.23,580.0,39.81,664.04,797.65],["23-04-01",4,11,100.0,2,2,0,3.9,0.0,96.1,6.43,22.5,3.98,32.91,63.19],["23-04-07",5,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["23-04-08",5,11,110.0,3,-1,6,0.0,3.85,113.85,6.43,22.5,3.98,32.91,80.94],["23-04-11",2,11,110.0,1,2,0,2.09,0.0,107.91,6.43,22.5,3.98,32.91,75.0],["23-04-13",2,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["23-04-15",0,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["23-04-22",4,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["23-04-22",1,12,420.0,2,1,0,15.33,0.0,404.67,38.79,136.5,15.92,191.21,213.46],["23-04-24",1,3,750.0,0,-1,0,0.0,0.0,750.0,32.23,238.0,15.92,286.15,463.85],["23-04-25",3,0,130.0,2,2,0,5.07,0.0,124.93,6.28,39.0,5.31,50.59,74.34],["23-04-29",4,2,180.0,3,-1,10,0.0,6.3,186.3,2.77,37.5,11.94,52.21,134.09],["23-04-29",2,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-04-29",0,8,200.0,1,3,0,3.1,0.0,196.9,5.08,54.0,7.96,67.04,129.86],["23-05-01",5,11,110.0,1,0,0,1.82,0.0,108.18,6.43,22.5,3.98,32.91,75.27],["23-05-02",0,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["23-05-03",2,6,3730.0,0,-1,0,0.0,0.0,3730.0,208.54,1280.0,23.88,1512.42,2217.58],["23-05-03",0,15,970.0,1,3,0,15.04,0.0,954.96,26.33,380.0,23.88,430.21,524.75],["23-05-03",0,7,240.0,1,4,0,3.36,0.0,236.64,10.82,66.0,7.96,84.78,151.86],["23-05-03",5,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["23-05-04",2,12,450.0,2,4,0,14.4,0.0,435.6,38.79,136.5,15.92,191.21,244.39],["23-05-05",1,12,460.0,0,-1,0,0.0,0.0,460.0,38.79,136.5,15.92,191.21,268.79],["23-05-05",3,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["23-05-08",0,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["23-05-09",5,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["23-05-10",4,15,1130.0,0,-1,0,0.0,0.0,1130.0,26.33,380.0,23.88,430.21,699.79],["23-05-11",3,15,1110.0,0,-1,0,0.0,0.0,1110.0,26.33,380.0,23.88,430.21,679.79],["23-05-12",2,8,210.0,1,3,0,3.25,0.0,206.75,5.08,54.0,7.96,67.04,139.71],["23-05-12",3,12,410.0,0,-1,0,0.0,0.0,410.0,38.79,136.5,15.92,191.21,218.79],["23-05-12",5,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["23-05-12",1,10,780.0,0,-1,0,0.0,0.0,780.0,37.69,262.5,15.92,316.11,463.89],["23-05-13",5,12,450.0,3,-1,2,0.0,11.25,461.25,38.79,136.5,15.92,191.21,270.04],["23-05-13",4,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-05-15",1,5,2010.0,3,-1,3,0.0,50.25,2060.25,98.54,630.0,31.85,760.39,1299.86],["23-05-16",1,11,90.0,2,4,0,2.88,0.0,87.12,6.43,22.5,3.98,32.91,54.21],["23-05-25",3,11,110.0,1,2,0,2.09,0.0,107.91,6.43,22.5,3.98,32.91,75.0],["23-05-25",0,12,470.0,0,-1,0,0.0,0.0,470.0,38.79,136.5,15.92,191.21,278.79],["23-05-26",4,7,240.0,2,0,0,8.4,0.0,231.6,10.82,66.0,7.96,84.78,146.82],["23-05-27",2,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["23-05-29",0,9,280.0,0,-1,0,0.0,0.0,280.0,24.09,72.0,10.62,106.71,173.29],["23-05-30",2,7,240.0,3,-1,6,0.0,8.4,248.4,10.82,66.0,7.96,84.78,163.62],["23-06-01",5,12,440.0,0,-1,0,0.0,0.0,440.0,38.79,136.5,15.92,191.21,248.79],["23-06-01",2,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["23-06-03",1,5,2090.0,2,0,0,73.15,0.0,2016.85,98.54,630.0,31.85,760.39,1256.46],["23-06-05",5,9,290.0,1,0,0,4.79,0.0,285.21,24.09,72.0,10.62,106.71,178.5],["23-06-06",1,12,470.0,2,1,0,17.15,0.0,452.85,38.79,136.5,15.92,191.21,261.64],["23-06-07",5,1,1000.0,2,0,0,35.0,0.0,965.0,59.21,311.5,23.88,394.59,570.41],["23-06-08",5,14,1710.0,0,-1,0,0.0,0.0,1710.0,44.23,580.0,39.81,664.04,1045.96],["23-06-09",5,0,140.0,3,-1,10,0.0,4.9,144.9,6.28,39.0,5.31,50.59,94.31],["23-06-09",4,1,940.0,0,-1,0,0.0,0.0,940.0,59.21,311.5,23.88,394.59,545.41],["23-06-10",5,12,430.0,1,3,0,6.67,0.0,423.33,38.79,136.5,15.92,191.21,232.12],["23-06-12",2,9,270.0,3,-1,3,0.0,6.75,276.75,24.09,72.0,10.62,106.71,170.04],["23-06-12",0,5,1840.0,0,-1,0,0.0,0.0,1840.0,98.54,630.0,31.85,760.39,1079.61],["23-06-13",0,4,620.0,0,-1,0,0.0,0.0,620.0,15.73,208.0,11.94,235.67,384.33],["23-06-13",3,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["23-06-14",0,5,2070.0,0,-1,0,0.0,0.0,2070.0,98.54,630.0,31.85,760.39,1309.61],["23-06-19",2,8,210.0,2,3,0,7.04,0.0,202.96,5.08,54.0,7.96,67.04,135.92],["23-06-19",1,11,90.0,2,1,0,3.28,0.0,86.72,6.43,22.5,3.98,32.91,53.81],["23-06-20",0,5,1860.0,0,-1,0,0.0,0.0,1860.0,98.54,630.0,31.85,760.39,1099.61],["23-06-20",3,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["23-06-23",2,13,190.0,3,-1,12,0.0,8.55,198.55,7.4,48.0,7.96,63.36,135.19],["23-06-26",4,0,150.0,3,-1,3,0.0,3.75,153.75,6.28,39.0,5.31,50.59,103.16],["23-06-28",5,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["23-06-29",1,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-06-30",2,0,140.0,2,0,0,4.9,0.0,135.1,6.28,39.0,5.31,50.59,84.51],["23-06-30",4,11,100.0,2,0,0,3.5,0.0,96.5,6.43,22.5,3.98,32.91,63.59],["23-06-30",0,7,260.0,2,0,0,9.1,0.0,250.9,10.82,66.0,7.96,84.78,166.12],["23-07-01",5,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["23-07-05",0,11,110.0,2,4,0,3.52,0.0,106.48,6.43,22.5,3.98,32.91,73.57],["23-07-06",3,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["23-07-06",1,8,210.0,2,3,0,7.04,0.0,202.96,5.08,54.0,7.96,67.04,135.92],["23-07-08",3,8,200.0,3,-1,12,0.0,9.0,209.0,5.08,54.0,7.96,67.04,141.96],["23-07-08",4,0,150.0,2,1,0,5.47,0.0,144.53,6.28,39.0,5.31,50.59,93.94],["23-07-08",3,13,190.0,2,2,0,7.41,0.0,182.59,7.4,48.0,7.96,63.36,119.23],["23-07-11",2,1,930.0,1,2,0,17.67,0.0,912.33,59.21,311.5,23.88,394.59,517.74],["23-07-12",3,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-07-13",4,15,1160.0,0,-1,0,0.0,0.0,1160.0,26.33,380.0,23.88,430.21,729.79],["23-07-19",1,0,150.0,3,-1,10,0.0,5.25,155.25,6.28,39.0,5.31,50.59,104.66],["23-07-20",5,2,170.0,2,0,0,5.95,0.0,164.05,2.77,37.5,11.94,52.21,111.84],["23-07-21",0,8,210.0,2,3,0,7.04,0.0,202.96,5.08,54.0,7.96,67.04,135.92],["23-07-22",5,2,160.0,0,-1,0,0.0,0.0,160.0,2.77,37.5,11.94,52.21,107.79],["23-07-24",2,12,450.0,2,1,0,16.43,0.0,433.57,38.79,136.5,15.92,191.21,242.36],["23-07-25",2,3,760.0,3,-1,10,0.0,26.6,786.6,32.23,238.0,15.92,286.15,500.45],["23-07-27",0,11,100.0,1,3,0,1.55,0.0,98.45,6.43,22.5,3.98,32.91,65.54],["23-08-01",2,7,250.0,1,2,0,4.75,0.0,245.25,10.82,66.0,7.96,84.78,160.47],["23-08-02",3,1,990.0,0,-1,0,0.0,0.0,990.0,59.21,311.5,23.88,394.59,595.41],["23-08-03",3,2,150.0,3,-1,3,0.0,3.75,153.75,2.77,37.5,11.94,52.21,101.54],["23-08-03",1,14,1620.0,3,-1,6,0.0,56.7,1676.7,44.23,580.0,39.81,664.04,1012.66],["23-08-04",2,7,250.0,2,1,0,9.12,0.0,240.88,10.82,66.0,7.96,84.78,156.1],["23-08-07",3,7,250.0,1,2,0,4.75,0.0,245.25,10.82,66.0,7.96,84.78,160.47],["23-08-08",0,7,260.0,2,2,0,10.14,0.0,249.86,10.82,66.0,7.96,84.78,165.08],["23-08-08",2,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-08-08",2,6,3490.0,2,0,0,122.15,0.0,3367.85,208.54,1280.0,23.88,1512.42,1855.43],["23-08-12",0,10,880.0,3,-1,3,0.0,22.0,902.0,37.69,262.5,15.92,316.11,585.89],["23-08-12",4,9,260.0,0,-1,0,0.0,0.0,260.0,24.09,72.0,10.62,106.71,153.29],["23-08-12",2,9,290.0,1,2,0,5.51,0.0,284.49,24.09,72.0,10.62,106.71,177.78],["23-08-16",1,10,910.0,2,4,0,29.12,0.0,880.88,37.69,262.5,15.92,316.11,564.77],["23-08-19",3,0,160.0,2,4,0,5.12,0.0,154.88,6.28,39.0,5.31,50.59,104.29],["23-08-22",1,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["23-08-22",1,14,1540.0,0,-1,0,0.0,0.0,1540.0,44.23,580.0,39.81,664.04,875.96],["23-08-23",5,5,2050.0,0,-1,0,0.0,0.0,2050.0,98.54,630.0,31.85,760.39,1289.61],["23-08-25",1,12,440.0,2,4,0,14.08,0.0,425.92,38.79,136.5,15.92,191.21,234.71],["23-08-26",0,4,620.0,1,0,0,10.23,0.0,609.77,15.73,208.0,11.94,235.67,374.1],["23-08-26",4,12,460.0,1,1,0,8.05,0.0,451.95,38.79,136.5,15.92,191.21,260.74],["23-08-26",1,13,190.0,2,3,0,6.37,0.0,183.63,7.4,48.0,7.96,63.36,120.27],["23-09-01",5,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-09-02",0,1,1050.0,2,3,0,35.18,0.0,1014.82,59.21,311.5,23.88,394.59,620.23],["23-09-02",3,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["23-09-02",0,2,160.0,3,-1,3,0.0,4.0,164.0,2.77,37.5,11.94,52.21,111.79],["23-09-04",3,2,150.0,0,-1,0,0.0,0.0,150.0,2.77,37.5,11.94,52.21,97.79],["23-09-05",2,7,230.0,2,3,0,7.71,0.0,222.29,10.82,66.0,7.96,84.78,137.51],["23-09-09",2,4,560.0,1,3,0,8.68,0.0,551.32,15.73,208.0,11.94,235.67,315.65],["23-09-12",5,2,180.0,2,2,0,7.02,0.0,172.98,2.77,37.5,11.94,52.21,120.77],["23-09-12",1,7,230.0,0,-1,0,0.0,0.0,230.0,10.82,66.0,7.96,84.78,145.22],["23-09-15",4,12,400.0,2,2,0,15.6,0.0,384.4,38.79,136.5,15.92,191.21,193.19],["23-09-18",4,1,1080.0,2,3,0,36.18,0.0,1043.82,59.21,311.5,23.88,394.59,649.23],["23-09-19",5,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["23-09-23",4,7,230.0,1,0,0,3.8,0.0,226.2,10.82,66.0,7.96,84.78,141.42],["23-09-23",4,0,140.0,3,-1,10,0.0,4.9,144.9,6.28,39.0,5.31,50.59,94.31],["23-09-23",4,7,230.0,3,-1,6,0.0,8.05,238.05,10.82,66.0,7.96,84.78,153.27],["23-09-23",1,12,440.0,2,0,0,15.4,0.0,424.6,38.79,136.5,15.92,191.21,233.39],["23-09-25",5,3,800.0,2,3,0,26.8,0.0,773.2,32.23,238.0,15.92,286.15,487.05],["23-09-27",4,4,630.0,0,-1,0,0.0,0.0,630.0,15.73,208.0,11.94,235.67,394.33],["23-09-28",1,7,250.0,3,-1,2,0.0,6.25,256.25,10.82,66.0,7.96,84.78,171.47],["23-10-03",3,2,160.0,1,2,0,3.04,0.0,156.96,2.77,37.5,11.94,52.21,104.75],["23-10-06",1,10,850.0,2,3,0,28.48,0.0,821.52,37.69,262.5,15.92,316.11,505.41],["23-10-10",1,2,170.0,2,0,0,5.95,0.0,164.05,2.77,37.5,11.94,52.21,111.84],["23-10-11",4,15,1140.0,2,4,0,36.48,0.0,1103.52,26.33,380.0,23.88,430.21,673.31],["23-10-14",1,0,150.0,1,3,0,2.33,0.0,147.67,6.28,39.0,5.31,50.59,97.08],["23-10-16",1,11,110.0,1,0,0,1.82,0.0,108.18,6.43,22.5,3.98,32.91,75.27],["23-10-16",0,12,440.0,2,4,0,14.08,0.0,425.92,38.79,136.5,15.92,191.21,234.71],["23-10-21",2,10,900.0,0,-1,0,0.0,0.0,900.0,37.69,262.5,15.92,316.11,583.89],["23-10-21",0,8,190.0,1,3,0,2.94,0.0,187.06,5.08,54.0,7.96,67.04,120.02],["23-10-23",0,0,160.0,0,-1,0,0.0,0.0,160.0,6.28,39.0,5.31,50.59,109.41],["23-10-24",4,8,210.0,1,2,0,3.99,0.0,206.01,5.08,54.0,7.96,67.04,138.97],["23-10-24",0,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["23-10-24",3,6,3790.0,2,1,0,138.33,0.0,3651.67,208.54,1280.0,23.88,1512.42,2139.25],["23-10-27",4,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-10-30",0,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["23-11-01",1,2,170.0,1,1,0,2.98,0.0,167.02,2.77,37.5,11.94,52.21,114.81],["23-11-01",2,2,170.0,1,3,0,2.63,0.0,167.37,2.77,37.5,11.94,52.21,115.16],["23-11-03",0,8,200.0,1,0,0,3.3,0.0,196.7,5.08,54.0,7.96,67.04,129.66],["23-11-04",3,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["23-11-04",5,3,730.0,2,0,0,25.55,0.0,704.45,32.23,238.0,15.92,286.15,418.3],["23-11-06",5,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["23-11-08",4,10,790.0,0,-1,0,0.0,0.0,790.0,37.69,262.5,15.92,316.11,473.89],["23-11-08",4,12,420.0,2,4,0,13.44,0.0,406.56,38.79,136.5,15.92,191.21,215.35],["23-11-09",4,10,790.0,2,3,0,26.46,0.0,763.54,37.69,262.5,15.92,316.11,447.43],["23-11-10",3,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-11-11",5,13,170.0,2,3,0,5.7,0.0,164.3,7.4,48.0,7.96,63.36,100.94],["23-11-11",2,0,140.0,1,4,0,1.96,0.0,138.04,6.28,39.0,5.31,50.59,87.45],["23-11-17",4,13,180.0,3,-1,12,0.0,8.1,188.1,7.4,48.0,7.96,63.36,124.74],["23-11-21",1,8,220.0,2,2,0,8.58,0.0,211.42,5.08,54.0,7.96,67.04,144.38],["23-11-22",5,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["23-11-22",5,12,460.0,2,0,0,16.1,0.0,443.9,38.79,136.5,15.92,191.21,252.69],["23-11-23",0,4,550.0,0,-1,0,0.0,0.0,550.0,15.73,208.0,11.94,235.67,314.33],["23-11-25",1,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["23-11-29",0,4,630.0,0,-1,0,0.0,0.0,630.0,15.73,208.0,11.94,235.67,394.33],["23-11-30",5,12,410.0,1,2,0,7.79,0.0,402.21,38.79,136.5,15.92,191.21,211.0],["23-12-01",2,8,190.0,0,-1,0,0.0,0.0,190.0,5.08,54.0,7.96,67.04,122.96],["23-12-02",0,8,210.0,2,3,0,7.04,0.0,202.96,5.08,54.0,7.96,67.04,135.92],["23-12-05",1,15,1120.0,0,-1,0,0.0,0.0,1120.0,26.33,380.0,23.88,430.21,689.79],["23-12-05",3,14,1680.0,2,1,0,61.32,0.0,1618.68,44.23,580.0,39.81,664.04,954.64],["23-12-11",4,1,970.0,2,0,0,33.95,0.0,936.05,59.21,311.5,23.88,394.59,541.46],["23-12-12",4,3,720.0,1,3,0,11.16,0.0,708.84,32.23,238.0,15.92,286.15,422.69],["23-12-12",3,13,170.0,0,-1,0,0.0,0.0,170.0,7.4,48.0,7.96,63.36,106.64],["23-12-13",5,11,90.0,2,2,0,3.51,0.0,86.49,6.43,22.5,3.98,32.91,53.58],["23-12-16",2,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["23-12-20",1,7,230.0,1,1,0,4.03,0.0,225.97,10.82,66.0,7.96,84.78,141.19],["23-12-23",0,6,3640.0,0,-1,0,0.0,0.0,3640.0,208.54,1280.0,23.88,1512.42,2127.58],["23-12-26",5,7,240.0,2,0,0,8.4,0.0,231.6,10.82,66.0,7.96,84.78,146.82],["23-12-29",1,12,410.0,0,-1,0,0.0,0.0,410.0,38.79,136.5,15.92,191.21,218.79],["23-12-30",4,14,1650.0,0,-1,0,0.0,0.0,1650.0,44.23,580.0,39.81,664.04,985.96],["24-01-01",0,7,270.0,1,3,0,4.18,0.0,265.82,10.82,66.0,7.96,84.78,181.04],["24-01-01",5,7,280.0,2,3,0,9.38,0.0,270.62,10.82,66.0,7.96,84.78,185.84],["24-01-01",0,13,180.0,3,-1,3,0.0,4.5,184.5,7.4,48.0,7.96,63.36,121.14],["24-01-01",5,2,190.0,1,1,0,3.33,0.0,186.67,2.77,37.5,11.94,52.21,134.46],["24-01-01",2,7,270.0,2,3,0,9.04,0.0,260.96,10.82,66.0,7.96,84.78,176.18],["24-01-03",5,10,840.0,2,1,0,30.66,0.0,809.34,37.69,262.5,15.92,316.11,493.23],["24-01-03",1,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["24-01-04",1,2,170.0,1,3,0,2.63,0.0,167.37,2.77,37.5,11.94,52.21,115.16],["24-01-04",0,12,450.0,1,3,0,6.97,0.0,443.03,38.79,136.5,15.92,191.21,251.82],["24-01-06",0,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["24-01-08",1,1,1000.0,2,3,0,33.5,0.0,966.5,59.21,311.5,23.88,394.59,571.91],["24-01-08",4,2,190.0,1,2,0,3.61,0.0,186.39,2.77,37.5,11.94,52.21,134.18],["24-01-15",0,1,1070.0,3,-1,6,0.0,37.45,1107.45,59.21,311.5,23.88,394.59,712.86],["24-01-18",1,7,260.0,2,1,0,9.49,0.0,250.51,10.82,66.0,7.96,84.78,165.73],["24-01-19",0,13,180.0,2,2,0,7.02,0.0,172.98,7.4,48.0,7.96,63.36,109.62],["24-01-20",4,2,180.0,2,0,0,6.3,0.0,173.7,2.77,37.5,11.94,52.21,121.49],["24-01-20",0,13,190.0,2,4,0,6.08,0.0,183.92,7.4,48.0,7.96,63.36,120.56],["24-01-22",3,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["24-01-23",1,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["24-01-25",2,14,1760.0,0,-1,0,0.0,0.0,1760.0,44.23,580.0,39.81,664.04,1095.96],["24-01-26",3,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["24-01-27",1,7,260.0,2,0,0,9.1,0.0,250.9,10.82,66.0,7.96,84.78,166.12],["24-01-27",4,11,100.0,1,3,0,1.55,0.0,98.45,6.43,22.5,3.98,32.91,65.54],["24-01-31",1,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["24-02-01",5,12,500.0,1,4,0,7.0,0.0,493.0,38.79,136.5,15.92,191.21,301.79],["24-02-01",0,1,1020.0,2,2,0,39.78,0.0,980.22,59.21,311.5,23.88,394.59,585.63],["24-02-03",3,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["24-02-05",0,2,170.0,2,0,0,5.95,0.0,164.05,2.77,37.5,11.94,52.21,111.84],["24-02-07",5,4,650.0,1,2,0,12.35,0.0,637.65,15.73,208.0,11.94,235.67,401.98],["24-02-09",0,11,110.0,2,3,0,3.69,0.0,106.31,6.43,22.5,3.98,32.91,73.4],["24-02-10",4,6,3770.0,0,-1,0,0.0,0.0,3770.0,208.54,1280.0,23.88,1512.42,2257.58],["24-02-10",3,4,590.0,3,-1,6,0.0,20.65,610.65,15.73,208.0,11.94,235.67,374.98],["24-02-12",5,1,1130.0,0,-1,0,0.0,0.0,1130.0,59.21,311.5,23.88,394.59,735.41],["24-02-14",3,4,610.0,1,1,0,10.68,0.0,599.32,15.73,208.0,11.94,235.67,363.65],["24-02-14",4,2,180.0,1,4,0,2.52,0.0,177.48,2.77,37.5,11.94,52.21,125.27],["24-02-16",2,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["24-02-16",1,10,840.0,2,4,0,26.88,0.0,813.12,37.69,262.5,15.92,316.11,497.01],["24-02-19",1,8,210.0,1,1,0,3.68,0.0,206.32,5.08,54.0,7.96,67.04,139.28],["24-02-22",5,0,160.0,2,3,0,5.36,0.0,154.64,6.28,39.0,5.31,50.59,104.05],["24-02-23",4,1,1070.0,0,-1,0,0.0,0.0,1070.0,59.21,311.5,23.88,394.59,675.41],["24-02-26",1,8,200.0,1,1,0,3.5,0.0,196.5,5.08,54.0,7.96,67.04,129.46],["24-02-26",5,2,190.0,1,4,0,2.66,0.0,187.34,2.77,37.5,11.94,52.21,135.13],["24-02-27",5,5,2150.0,1,4,0,30.1,0.0,2119.9,98.54,630.0,31.85,760.39,1359.51],["24-02-27",5,2,190.0,1,0,0,3.14,0.0,186.86,2.77,37.5,11.94,52.21,134.65],["24-02-29",3,12,470.0,2,4,0,15.04,0.0,454.96,38.79,136.5,15.92,191.21,263.75],["24-03-02",1,12,420.0,1,0,0,6.93,0.0,413.07,38.79,136.5,15.92,191.21,221.86],["24-03-02",3,7,270.0,1,0,0,4.46,0.0,265.54,10.82,66.0,7.96,84.78,180.76],["24-03-05",5,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["24-03-11",3,9,280.0,1,4,0,3.92,0.0,276.08,24.09,72.0,10.62,106.71,169.37],["24-03-12",5,10,830.0,2,3,0,27.81,0.0,802.19,37.69,262.5,15.92,316.11,486.08],["24-03-13",2,11,110.0,1,2,0,2.09,0.0,107.91,6.43,22.5,3.98,32.91,75.0],["24-03-13",4,12,470.0,3,-1,3,0.0,11.75,481.75,38.79,136.5,15.92,191.21,290.54],["24-03-16",1,12,420.0,2,2,0,16.38,0.0,403.62,38.79,136.5,15.92,191.21,212.41],["24-03-19",2,15,1190.0,3,-1,2,0.0,29.75,1219.75,26.33,380.0,23.88,430.21,789.54],["24-03-20",5,3,760.0,1,3,0,11.78,0.0,748.22,32.23,238.0,15.92,286.15,462.07],["24-03-20",5,3,740.0,2,3,0,24.79,0.0,715.21,32.23,238.0,15.92,286.15,429.06],["24-03-21",1,6,4090.0,0,-1,0,0.0,0.0,4090.0,208.54,1280.0,23.88,1512.42,2577.58],["24-03-23",1,2,180.0,2,1,0,6.57,0.0,173.43,2.77,37.5,11.94,52.21,121.22],["24-03-29",3,2,170.0,1,1,0,2.98,0.0,167.02,2.77,37.5,11.94,52.21,114.81],["24-03-30",1,2,180.0,2,4,0,5.76,0.0,174.24,2.77,37.5,11.94,52.21,122.03],["24-04-03",4,1,1050.0,2,4,0,33.6,0.0,1016.4,59.21,311.5,23.88,394.59,621.81],["24-04-03",3,12,460.0,2,2,0,17.94,0.0,442.06,38.79,136.5,15.92,191.21,250.85],["24-04-06",2,4,630.0,3,-1,3,0.0,15.75,645.75,15.73,208.0,11.94,235.67,410.08],["24-04-09",1,9,300.0,2,1,0,10.95,0.0,289.05,24.09,72.0,10.62,106.71,182.34],["24-04-10",3,7,250.0,2,3,0,8.38,0.0,241.62,10.82,66.0,7.96,84.78,156.84],["24-04-12",1,12,470.0,2,1,0,17.15,0.0,452.85,38.79,136.5,15.92,191.21,261.64],["24-04-15",0,5,2120.0,1,1,0,37.1,0.0,2082.9,98.54,630.0,31.85,760.39,1322.51],["24-04-15",1,10,880.0,2,1,0,32.12,0.0,847.88,37.69,262.5,15.92,316.11,531.77],["24-04-16",0,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["24-04-19",3,3,860.0,3,-1,6,0.0,30.1,890.1,32.23,238.0,15.92,286.15,603.95],["24-04-19",2,13,200.0,3,-1,6,0.0,7.0,207.0,7.4,48.0,7.96,63.36,143.64],["24-04-20",5,8,210.0,3,-1,10,0.0,7.35,217.35,5.08,54.0,7.96,67.04,150.31],["24-04-29",3,14,1770.0,0,-1,0,0.0,0.0,1770.0,44.23,580.0,39.81,664.04,1105.96],["24-05-01",5,10,930.0,0,-1,0,0.0,0.0,930.0,37.69,262.5,15.92,316.11,613.89],["24-05-06",1,12,430.0,2,0,0,15.05,0.0,414.95,38.79,136.5,15.92,191.21,223.74],["24-05-06",2,12,430.0,1,4,0,6.02,0.0,423.98,38.79,136.5,15.92,191.21,232.77],["24-05-07",5,7,270.0,1,1,0,4.73,0.0,265.27,10.82,66.0,7.96,84.78,180.49],["24-05-08",0,8,220.0,2,0,0,7.7,0.0,212.3,5.08,54.0,7.96,67.04,145.26],["24-05-08",1,1,1130.0,0,-1,0,0.0,0.0,1130.0,59.21,311.5,23.88,394.59,735.41],["24-05-09",5,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["24-05-13",0,12,430.0,0,-1,0,0.0,0.0,430.0,38.79,136.5,15.92,191.21,238.79],["24-05-14",4,8,220.0,1,3,0,3.41,0.0,216.59,5.08,54.0,7.96,67.04,149.55],["24-05-15",1,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["24-05-16",5,3,770.0,0,-1,0,0.0,0.0,770.0,32.23,238.0,15.92,286.15,483.85],["24-05-16",5,2,180.0,2,2,0,7.02,0.0,172.98,2.77,37.5,11.94,52.21,120.77],["24-05-21",5,15,1080.0,2,3,0,36.18,0.0,1043.82,26.33,380.0,23.88,430.21,613.61],["24-05-23",5,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["24-05-23",3,5,2240.0,2,1,0,81.76,0.0,2158.24,98.54,630.0,31.85,760.39,1397.85],["24-05-23",0,14,1830.0,1,3,0,28.36,0.0,1801.64,44.23,580.0,39.81,664.04,1137.6],["24-05-23",1,5,2290.0,3,-1,12,0.0,103.05,2393.05,98.54,630.0,31.85,760.39,1632.66],["24-05-24",0,4,640.0,0,-1,0,0.0,0.0,640.0,15.73,208.0,11.94,235.67,404.33],["24-05-25",2,13,190.0,2,4,0,6.08,0.0,183.92,7.4,48.0,7.96,63.36,120.56],["24-05-28",2,2,190.0,3,-1,6,0.0,6.65,196.65,2.77,37.5,11.94,52.21,144.44],["24-05-28",1,12,440.0,2,3,0,14.74,0.0,425.26,38.79,136.5,15.92,191.21,234.05],["24-06-01",5,12,490.0,0,-1,0,0.0,0.0,490.0,38.79,136.5,15.92,191.21,298.79],["24-06-01",2,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["24-06-03",5,15,1060.0,1,3,0,16.43,0.0,1043.57,26.33,380.0,23.88,430.21,613.36],["24-06-04",0,7,240.0,2,3,0,8.04,0.0,231.96,10.82,66.0,7.96,84.78,147.18],["24-06-05",0,8,220.0,2,1,0,8.03,0.0,211.97,5.08,54.0,7.96,67.04,144.93],["24-06-08",4,14,1660.0,0,-1,0,0.0,0.0,1660.0,44.23,580.0,39.81,664.04,995.96],["24-06-12",0,7,240.0,1,4,0,3.36,0.0,236.64,10.82,66.0,7.96,84.78,151.86],["24-06-14",2,4,560.0,3,-1,10,0.0,19.6,579.6,15.73,208.0,11.94,235.67,343.93],["24-06-14",1,7,250.0,3,-1,6,0.0,8.75,258.75,10.82,66.0,7.96,84.78,173.97],["24-06-17",2,7,260.0,3,-1,10,0.0,9.1,269.1,10.82,66.0,7.96,84.78,184.32],["24-06-18",4,8,220.0,0,-1,0,0.0,0.0,220.0,5.08,54.0,7.96,67.04,152.96],["24-06-19",1,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["24-06-22",4,14,1580.0,3,-1,12,0.0,71.1,1651.1,44.23,580.0,39.81,664.04,987.06],["24-06-25",1,1,960.0,3,-1,12,0.0,43.2,1003.2,59.21,311.5,23.88,394.59,608.61],["24-06-29",2,8,200.0,1,4,0,2.8,0.0,197.2,5.08,54.0,7.96,67.04,130.16],["24-07-04",1,7,260.0,2,0,0,9.1,0.0,250.9,10.82,66.0,7.96,84.78,166.12],["24-07-06",5,10,940.0,1,4,0,13.16,0.0,926.84,37.69,262.5,15.92,316.11,610.73],["24-07-06",0,9,270.0,2,0,0,9.45,0.0,260.55,24.09,72.0,10.62,106.71,153.84],["24-07-08",2,8,220.0,1,2,0,4.18,0.0,215.82,5.08,54.0,7.96,67.04,148.78],["24-07-09",3,11,110.0,3,-1,12,0.0,4.95,114.95,6.43,22.5,3.98,32.91,82.04],["24-07-10",1,8,220.0,0,-1,0,0.0,0.0,220.0,5.08,54.0,7.96,67.04,152.96],["24-07-13",3,11,110.0,2,3,0,3.69,0.0,106.31,6.43,22.5,3.98,32.91,73.4],["24-07-17",2,7,240.0,1,1,0,4.2,0.0,235.8,10.82,66.0,7.96,84.78,151.02],["24-07-19",5,1,1130.0,0,-1,0,0.0,0.0,1130.0,59.21,311.5,23.88,394.59,735.41],["24-07-22",3,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["24-07-24",2,12,470.0,0,-1,0,0.0,0.0,470.0,38.79,136.5,15.92,191.21,278.79],["24-07-24",3,0,140.0,0,-1,0,0.0,0.0,140.0,6.28,39.0,5.31,50.59,89.41],["24-07-24",3,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["24-07-25",5,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["24-07-26",3,12,470.0,1,0,0,7.76,0.0,462.24,38.79,136.5,15.92,191.21,271.03],["24-07-30",1,2,160.0,2,4,0,5.12,0.0,154.88,2.77,37.5,11.94,52.21,102.67],["24-07-30",1,15,1120.0,0,-1,0,0.0,0.0,1120.0,26.33,380.0,23.88,430.21,689.79],["24-07-30",4,9,310.0,1,0,0,5.12,0.0,304.88,24.09,72.0,10.62,106.71,198.17],["24-07-31",2,10,950.0,2,3,0,31.83,0.0,918.17,37.69,262.5,15.92,316.11,602.06],["24-07-31",0,7,260.0,2,2,0,10.14,0.0,249.86,10.82,66.0,7.96,84.78,165.08],["24-08-01",3,11,110.0,2,1,0,4.01,0.0,105.99,6.43,22.5,3.98,32.91,73.08],["24-08-01",4,11,100.0,1,4,0,1.4,0.0,98.6,6.43,22.5,3.98,32.91,65.69],["24-08-01",4,12,470.0,0,-1,0,0.0,0.0,470.0,38.79,136.5,15.92,191.21,278.79],["24-08-02",4,2,170.0,3,-1,3,0.0,4.25,174.25,2.77,37.5,11.94,52.21,122.04],["24-08-05",5,11,120.0,0,-1,0,0.0,0.0,120.0,6.43,22.5,3.98,32.91,87.09],["24-08-09",5,12,460.0,1,2,0,8.74,0.0,451.26,38.79,136.5,15.92,191.21,260.05],["24-08-09",2,7,270.0,2,2,0,10.53,0.0,259.47,10.82,66.0,7.96,84.78,174.69],["24-08-14",5,14,1760.0,0,-1,0,0.0,0.0,1760.0,44.23,580.0,39.81,664.04,1095.96],["24-08-14",2,12,460.0,0,-1,0,0.0,0.0,460.0,38.79,136.5,15.92,191.21,268.79],["24-08-16",0,7,250.0,2,2,0,9.75,0.0,240.25,10.82,66.0,7.96,84.78,155.47],["24-08-17",0,0,140.0,1,3,0,2.17,0.0,137.83,6.28,39.0,5.31,50.59,87.24],["24-08-17",5,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["24-08-19",3,12,420.0,2,3,0,14.07,0.0,405.93,38.79,136.5,15.92,191.21,214.72],["24-08-21",5,4,610.0,1,2,0,11.59,0.0,598.41,15.73,208.0,11.94,235.67,362.74],["24-08-22",1,3,820.0,1,0,0,13.53,0.0,806.47,32.23,238.0,15.92,286.15,520.32],["24-08-22",4,4,600.0,1,0,0,9.9,0.0,590.1,15.73,208.0,11.94,235.67,354.43],["24-08-26",2,0,150.0,1,3,0,2.33,0.0,147.67,6.28,39.0,5.31,50.59,97.08],["24-08-28",2,12,440.0,2,0,0,15.4,0.0,424.6,38.79,136.5,15.92,191.21,233.39],["24-08-31",1,2,190.0,1,0,0,3.14,0.0,186.86,2.77,37.5,11.94,52.21,134.65],["24-08-31",4,2,160.0,1,2,0,3.04,0.0,156.96,2.77,37.5,11.94,52.21,104.75],["24-09-02",3,13,180.0,3,-1,6,0.0,6.3,186.3,7.4,48.0,7.96,63.36,122.94],["24-09-02",0,8,220.0,2,2,0,8.58,0.0,211.42,5.08,54.0,7.96,67.04,144.38],["24-09-03",0,8,220.0,2,4,0,7.04,0.0,212.96,5.08,54.0,7.96,67.04,145.92],["24-09-05",1,15,1200.0,1,0,0,19.8,0.0,1180.2,26.33,380.0,23.88,430.21,749.99],["24-09-05",0,2,170.0,2,4,0,5.44,0.0,164.56,2.77,37.5,11.94,52.21,112.35],["24-09-06",3,5,2120.0,2,2,0,82.68,0.0,2037.32,98.54,630.0,31.85,760.39,1276.93],["24-09-07",4,15,1210.0,1,0,0,19.96,0.0,1190.04,26.33,380.0,23.88,430.21,759.83],["24-09-09",1,7,240.0,0,-1,0,0.0,0.0,240.0,10.82,66.0,7.96,84.78,155.22],["24-09-09",3,9,290.0,0,-1,0,0.0,0.0,290.0,24.09,72.0,10.62,106.71,183.29],["24-09-09",2,9,290.0,0,-1,0,0.0,0.0,290.0,24.09,72.0,10.62,106.71,183.29],["24-09-09",4,2,190.0,1,2,0,3.61,0.0,186.39,2.77,37.5,11.94,52.21,134.18],["24-09-14",0,8,220.0,2,0,0,7.7,0.0,212.3,5.08,54.0,7.96,67.04,145.26],["24-09-16",3,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["24-09-16",4,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["24-09-17",2,8,220.0,0,-1,0,0.0,0.0,220.0,5.08,54.0,7.96,67.04,152.96],["24-09-17",2,3,810.0,0,-1,0,0.0,0.0,810.0,32.23,238.0,15.92,286.15,523.85],["24-09-18",0,12,420.0,3,-1,6,0.0,14.7,434.7,38.79,136.5,15.92,191.21,243.49],["24-09-20",4,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["24-09-21",0,9,260.0,3,-1,6,0.0,9.1,269.1,24.09,72.0,10.62,106.71,162.39],["24-09-25",1,12,440.0,1,1,0,7.7,0.0,432.3,38.79,136.5,15.92,191.21,241.09],["24-09-25",1,12,490.0,2,0,0,17.15,0.0,472.85,38.79,136.5,15.92,191.21,281.64],["24-09-25",1,12,500.0,3,-1,6,0.0,17.5,517.5,38.79,136.5,15.92,191.21,326.29],["24-09-26",1,3,770.0,1,0,0,12.71,0.0,757.29,32.23,238.0,15.92,286.15,471.14],["24-09-26",3,12,490.0,1,0,0,8.09,0.0,481.91,38.79,136.5,15.92,191.21,290.7],["24-09-27",4,8,230.0,1,1,0,4.03,0.0,225.97,5.08,54.0,7.96,67.04,158.93],["24-09-28",0,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["24-09-30",5,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["24-09-30",1,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["24-10-01",5,8,230.0,1,4,0,3.22,0.0,226.78,5.08,54.0,7.96,67.04,159.74],["24-10-01",1,8,220.0,2,2,0,8.58,0.0,211.42,5.08,54.0,7.96,67.04,144.38],["24-10-01",0,7,280.0,2,3,0,9.38,0.0,270.62,10.82,66.0,7.96,84.78,185.84],["24-10-01",4,11,110.0,2,1,0,4.01,0.0,105.99,6.43,22.5,3.98,32.91,73.08],["24-10-01",0,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["24-10-02",1,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["24-10-02",5,7,270.0,2,0,0,9.45,0.0,260.55,10.82,66.0,7.96,84.78,175.77],["24-10-07",2,9,290.0,3,-1,6,0.0,10.15,300.15,24.09,72.0,10.62,106.71,193.44],["24-10-08",5,9,290.0,2,3,0,9.71,0.0,280.29,24.09,72.0,10.62,106.71,173.58],["24-10-09",2,8,230.0,2,0,0,8.05,0.0,221.95,5.08,54.0,7.96,67.04,154.91],["24-10-11",0,9,270.0,3,-1,6,0.0,9.45,279.45,24.09,72.0,10.62,106.71,172.74],["24-10-11",1,10,900.0,3,-1,3,0.0,22.5,922.5,37.69,262.5,15.92,316.11,606.39],["24-10-12",5,8,230.0,0,-1,0,0.0,0.0,230.0,5.08,54.0,7.96,67.04,162.96],["24-10-12",2,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["24-10-14",2,8,190.0,1,3,0,2.94,0.0,187.06,5.08,54.0,7.96,67.04,120.02],["24-10-14",4,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["24-10-16",3,7,250.0,1,1,0,4.38,0.0,245.62,10.82,66.0,7.96,84.78,160.84],["24-10-17",0,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["24-10-18",5,12,490.0,3,-1,6,0.0,17.15,507.15,38.79,136.5,15.92,191.21,315.94],["24-10-18",3,8,220.0,2,1,0,8.03,0.0,211.97,5.08,54.0,7.96,67.04,144.93],["24-10-21",2,7,260.0,1,3,0,4.03,0.0,255.97,10.82,66.0,7.96,84.78,171.19],["24-10-22",4,10,910.0,2,1,0,33.21,0.0,876.79,37.69,262.5,15.92,316.11,560.68],["24-10-23",2,5,2010.0,0,-1,0,0.0,0.0,2010.0,98.54,630.0,31.85,760.39,1249.61],["24-10-25",0,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["24-11-04",4,8,200.0,2,2,0,7.8,0.0,192.2,5.08,54.0,7.96,67.04,125.16],["24-11-05",4,3,840.0,3,-1,10,0.0,29.4,869.4,32.23,238.0,15.92,286.15,583.25],["24-11-14",2,0,160.0,2,0,0,5.6,0.0,154.4,6.28,39.0,5.31,50.59,103.81],["24-11-15",1,8,220.0,2,1,0,8.03,0.0,211.97,5.08,54.0,7.96,67.04,144.93],["24-11-15",1,5,2200.0,2,1,0,80.3,0.0,2119.7,98.54,630.0,31.85,760.39,1359.31],["24-11-16",4,0,160.0,0,-1,0,0.0,0.0,160.0,6.28,39.0,5.31,50.59,109.41],["24-11-19",3,13,200.0,2,4,0,6.4,0.0,193.6,7.4,48.0,7.96,63.36,130.24],["24-11-22",3,12,460.0,2,3,0,15.41,0.0,444.59,38.79,136.5,15.92,191.21,253.38],["24-11-22",5,15,1130.0,3,-1,10,0.0,39.55,1169.55,26.33,380.0,23.88,430.21,739.34],["24-11-25",5,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["24-11-25",4,10,930.0,0,-1,0,0.0,0.0,930.0,37.69,262.5,15.92,316.11,613.89],["24-11-26",5,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["24-11-28",3,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["24-11-29",1,12,460.0,0,-1,0,0.0,0.0,460.0,38.79,136.5,15.92,191.21,268.79],["24-11-30",0,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["24-12-02",4,12,500.0,0,-1,0,0.0,0.0,500.0,38.79,136.5,15.92,191.21,308.79],["24-12-03",3,7,250.0,2,2,0,9.75,0.0,240.25,10.82,66.0,7.96,84.78,155.47],["24-12-05",3,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["24-12-05",1,8,230.0,1,1,0,4.03,0.0,225.97,5.08,54.0,7.96,67.04,158.93],["24-12-07",4,1,1070.0,0,-1,0,0.0,0.0,1070.0,59.21,311.5,23.88,394.59,675.41],["24-12-10",4,2,190.0,1,1,0,3.33,0.0,186.67,2.77,37.5,11.94,52.21,134.46],["24-12-13",2,11,100.0,1,1,0,1.75,0.0,98.25,6.43,22.5,3.98,32.91,65.34],["24-12-16",3,8,210.0,2,1,0,7.66,0.0,202.34,5.08,54.0,7.96,67.04,135.3],["24-12-16",4,15,1130.0,0,-1,0,0.0,0.0,1130.0,26.33,380.0,23.88,430.21,699.79],["24-12-16",5,9,270.0,1,4,0,3.78,0.0,266.22,24.09,72.0,10.62,106.71,159.51],["24-12-17",1,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["24-12-19",4,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["24-12-23",1,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["24-12-27",3,12,460.0,0,-1,0,0.0,0.0,460.0,38.79,136.5,15.92,191.21,268.79],["24-12-27",1,7,260.0,2,4,0,8.32,0.0,251.68,10.82,66.0,7.96,84.78,166.9],["24-12-27",5,15,1060.0,2,1,0,38.69,0.0,1021.31,26.33,380.0,23.88,430.21,591.1],["24-12-30",0,1,1060.0,0,-1,0,0.0,0.0,1060.0,59.21,311.5,23.88,394.59,665.41],["24-12-30",2,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["25-01-01",1,8,240.0,2,4,0,7.68,0.0,232.32,5.08,54.0,7.96,67.04,165.28],["25-01-01",3,11,110.0,2,3,0,3.69,0.0,106.31,6.43,22.5,3.98,32.91,73.4],["25-01-02",0,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["25-01-02",2,8,210.0,1,3,0,3.25,0.0,206.75,5.08,54.0,7.96,67.04,139.71],["25-01-03",5,8,230.0,0,-1,0,0.0,0.0,230.0,5.08,54.0,7.96,67.04,162.96],["25-01-03",4,9,300.0,0,-1,0,0.0,0.0,300.0,24.09,72.0,10.62,106.71,193.29],["25-01-09",5,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["25-01-11",1,1,1160.0,2,3,0,38.86,0.0,1121.14,59.21,311.5,23.88,394.59,726.55],["25-01-13",0,12,520.0,1,4,0,7.28,0.0,512.72,38.79,136.5,15.92,191.21,321.51],["25-01-13",4,11,110.0,2,3,0,3.69,0.0,106.31,6.43,22.5,3.98,32.91,73.4],["25-01-14",2,8,220.0,1,0,0,3.63,0.0,216.37,5.08,54.0,7.96,67.04,149.33],["25-01-15",2,11,120.0,1,1,0,2.1,0.0,117.9,6.43,22.5,3.98,32.91,84.99],["25-01-15",4,14,1690.0,1,0,0,27.89,0.0,1662.11,44.23,580.0,39.81,664.04,998.07],["25-01-20",0,8,230.0,1,4,0,3.22,0.0,226.78,5.08,54.0,7.96,67.04,159.74],["25-01-22",3,7,290.0,2,0,0,10.15,0.0,279.85,10.82,66.0,7.96,84.78,195.07],["25-01-27",5,8,210.0,2,3,0,7.04,0.0,202.96,5.08,54.0,7.96,67.04,135.92],["25-02-01",1,11,100.0,1,1,0,1.75,0.0,98.25,6.43,22.5,3.98,32.91,65.34],["25-02-01",3,8,230.0,0,-1,0,0.0,0.0,230.0,5.08,54.0,7.96,67.04,162.96],["25-02-03",4,7,290.0,1,1,0,5.08,0.0,284.92,10.82,66.0,7.96,84.78,200.14],["25-02-04",4,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["25-02-05",5,0,170.0,0,-1,0,0.0,0.0,170.0,6.28,39.0,5.31,50.59,119.41],["25-02-05",0,14,1800.0,1,2,0,34.2,0.0,1765.8,44.23,580.0,39.81,664.04,1101.76],["25-02-06",1,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["25-02-06",5,11,120.0,0,-1,0,0.0,0.0,120.0,6.43,22.5,3.98,32.91,87.09],["25-02-07",3,4,650.0,2,0,0,22.75,0.0,627.25,15.73,208.0,11.94,235.67,391.58],["25-02-08",2,2,170.0,2,1,0,6.2,0.0,163.8,2.77,37.5,11.94,52.21,111.59],["25-02-11",3,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["25-02-11",0,8,230.0,2,1,0,8.39,0.0,221.61,5.08,54.0,7.96,67.04,154.57],["25-02-17",1,2,190.0,1,3,0,2.94,0.0,187.06,2.77,37.5,11.94,52.21,134.85],["25-02-17",2,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["25-02-18",1,9,280.0,2,2,0,10.92,0.0,269.08,24.09,72.0,10.62,106.71,162.37],["25-02-21",2,8,230.0,2,3,0,7.71,0.0,222.29,5.08,54.0,7.96,67.04,155.25],["25-02-24",2,13,180.0,0,-1,0,0.0,0.0,180.0,7.4,48.0,7.96,63.36,116.64],["25-02-24",3,11,110.0,2,2,0,4.29,0.0,105.71,6.43,22.5,3.98,32.91,72.8],["25-02-27",3,1,1000.0,1,4,0,14.0,0.0,986.0,59.21,311.5,23.88,394.59,591.41],["25-03-04",3,0,170.0,0,-1,0,0.0,0.0,170.0,6.28,39.0,5.31,50.59,119.41],["25-03-05",4,3,820.0,1,3,0,12.71,0.0,807.29,32.23,238.0,15.92,286.15,521.14],["25-03-07",1,2,170.0,2,3,0,5.7,0.0,164.3,2.77,37.5,11.94,52.21,112.09],["25-03-14",3,12,480.0,3,-1,2,0.0,12.0,492.0,38.79,136.5,15.92,191.21,300.79],["25-03-17",2,3,780.0,1,3,0,12.09,0.0,767.91,32.23,238.0,15.92,286.15,481.76],["25-03-18",5,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["25-03-20",3,2,200.0,0,-1,0,0.0,0.0,200.0,2.77,37.5,11.94,52.21,147.79],["25-03-22",2,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["25-03-24",4,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["25-03-25",5,8,200.0,0,-1,0,0.0,0.0,200.0,5.08,54.0,7.96,67.04,132.96],["25-03-25",0,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["25-03-25",3,11,120.0,3,-1,3,0.0,3.0,123.0,6.43,22.5,3.98,32.91,90.09],["25-03-29",0,15,1090.0,0,-1,0,0.0,0.0,1090.0,26.33,380.0,23.88,430.21,659.79],["25-04-02",0,8,220.0,0,-1,0,0.0,0.0,220.0,5.08,54.0,7.96,67.04,152.96],["25-04-02",2,9,310.0,1,0,0,5.12,0.0,304.88,24.09,72.0,10.62,106.71,198.17],["25-04-04",3,5,2210.0,2,0,0,77.35,0.0,2132.65,98.54,630.0,31.85,760.39,1372.26],["25-04-04",1,12,520.0,2,3,0,17.42,0.0,502.58,38.79,136.5,15.92,191.21,311.37],["25-04-09",5,12,440.0,3,-1,6,0.0,15.4,455.4,38.79,136.5,15.92,191.21,264.19],["25-04-10",0,11,110.0,0,-1,0,0.0,0.0,110.0,6.43,22.5,3.98,32.91,77.09],["25-04-14",5,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["25-04-15",0,8,210.0,1,1,0,3.68,0.0,206.32,5.08,54.0,7.96,67.04,139.28],["25-04-15",1,5,2220.0,0,-1,0,0.0,0.0,2220.0,98.54,630.0,31.85,760.39,1459.61],["25-04-16",3,4,610.0,0,-1,0,0.0,0.0,610.0,15.73,208.0,11.94,235.67,374.33],["25-04-17",2,2,180.0,1,0,0,2.97,0.0,177.03,2.77,37.5,11.94,52.21,124.82],["25-04-21",1,8,230.0,1,2,0,4.37,0.0,225.63,5.08,54.0,7.96,67.04,158.59],["25-04-21",3,4,590.0,2,0,0,20.65,0.0,569.35,15.73,208.0,11.94,235.67,333.68],["25-04-22",0,8,200.0,2,3,0,6.7,0.0,193.3,5.08,54.0,7.96,67.04,126.26],["25-04-24",3,13,180.0,0,-1,0,0.0,0.0,180.0,7.4,48.0,7.96,63.36,116.64],["25-04-24",4,2,200.0,2,1,0,7.3,0.0,192.7,2.77,37.5,11.94,52.21,140.49],["25-04-24",4,8,240.0,2,1,0,8.76,0.0,231.24,5.08,54.0,7.96,67.04,164.2],["25-04-25",5,12,460.0,3,-1,6,0.0,16.1,476.1,38.79,136.5,15.92,191.21,284.89],["25-04-29",5,7,260.0,1,2,0,4.94,0.0,255.06,10.82,66.0,7.96,84.78,170.28],["25-04-30",3,11,110.0,1,1,0,1.93,0.0,108.07,6.43,22.5,3.98,32.91,75.16],["25-04-30",1,12,520.0,2,1,0,18.98,0.0,501.02,38.79,136.5,15.92,191.21,309.81],["25-05-01",1,11,120.0,0,-1,0,0.0,0.0,120.0,6.43,22.5,3.98,32.91,87.09],["25-05-05",1,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["25-05-05",1,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["25-05-05",3,9,320.0,2,4,0,10.24,0.0,309.76,24.09,72.0,10.62,106.71,203.05],["25-05-09",3,12,490.0,2,2,0,19.11,0.0,470.89,38.79,136.5,15.92,191.21,279.68],["25-05-10",5,8,230.0,1,3,0,3.56,0.0,226.44,5.08,54.0,7.96,67.04,159.4],["25-05-12",2,0,160.0,2,4,0,5.12,0.0,154.88,6.28,39.0,5.31,50.59,104.29],["25-05-13",0,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["25-05-13",0,8,230.0,3,-1,3,0.0,5.75,235.75,5.08,54.0,7.96,67.04,168.71],["25-05-14",2,11,100.0,0,-1,0,0.0,0.0,100.0,6.43,22.5,3.98,32.91,67.09],["25-05-17",1,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["25-05-21",5,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["25-05-26",3,3,850.0,2,4,0,27.2,0.0,822.8,32.23,238.0,15.92,286.15,536.65],["25-05-27",3,7,290.0,0,-1,0,0.0,0.0,290.0,10.82,66.0,7.96,84.78,205.22],["25-05-27",3,0,170.0,0,-1,0,0.0,0.0,170.0,6.28,39.0,5.31,50.59,119.41],["25-05-28",5,12,450.0,0,-1,0,0.0,0.0,450.0,38.79,136.5,15.92,191.21,258.79],["25-05-29",4,11,110.0,2,2,0,4.29,0.0,105.71,6.43,22.5,3.98,32.91,72.8],["25-05-29",1,7,270.0,1,2,0,5.13,0.0,264.87,10.82,66.0,7.96,84.78,180.09],["25-05-29",5,12,480.0,1,4,0,6.72,0.0,473.28,38.79,136.5,15.92,191.21,282.07],["25-05-31",1,8,240.0,2,0,0,8.4,0.0,231.6,5.08,54.0,7.96,67.04,164.56],["25-06-04",1,7,290.0,1,0,0,4.79,0.0,285.21,10.82,66.0,7.96,84.78,200.43],["25-06-04",5,0,170.0,2,1,0,6.2,0.0,163.8,6.28,39.0,5.31,50.59,113.21],["25-06-06",4,1,1120.0,2,3,0,37.52,0.0,1082.48,59.21,311.5,23.88,394.59,687.89],["25-06-07",5,13,200.0,2,4,0,6.4,0.0,193.6,7.4,48.0,7.96,63.36,130.24],["25-06-07",5,7,250.0,1,0,0,4.12,0.0,245.88,10.82,66.0,7.96,84.78,161.1],["25-06-09",1,11,110.0,2,2,0,4.29,0.0,105.71,6.43,22.5,3.98,32.91,72.8],["25-06-09",2,11,110.0,2,0,0,3.85,0.0,106.15,6.43,22.5,3.98,32.91,73.24],["25-06-10",0,10,850.0,2,1,0,31.02,0.0,818.98,37.69,262.5,15.92,316.11,502.87],["25-06-11",0,6,3850.0,1,0,0,63.53,0.0,3786.47,208.54,1280.0,23.88,1512.42,2274.05],["25-06-12",4,4,630.0,1,0,0,10.4,0.0,619.6,15.73,208.0,11.94,235.67,383.93],["25-06-14",0,12,450.0,3,-1,10,0.0,15.75,465.75,38.79,136.5,15.92,191.21,274.54],["25-06-17",5,5,2150.0,1,1,0,37.63,0.0,2112.37,98.54,630.0,31.85,760.39,1351.98],["25-06-18",0,0,170.0,0,-1,0,0.0,0.0,170.0,6.28,39.0,5.31,50.59,119.41],["25-06-18",1,10,910.0,3,-1,10,0.0,31.85,941.85,37.69,262.5,15.92,316.11,625.74],["25-06-20",5,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["25-06-21",4,11,110.0,1,0,0,1.82,0.0,108.18,6.43,22.5,3.98,32.91,75.27],["25-06-24",1,15,1150.0,2,4,0,36.8,0.0,1113.2,26.33,380.0,23.88,430.21,682.99],["25-06-24",5,7,270.0,0,-1,0,0.0,0.0,270.0,10.82,66.0,7.96,84.78,185.22],["25-06-24",1,2,170.0,2,4,0,5.44,0.0,164.56,2.77,37.5,11.94,52.21,112.35],["25-06-25",4,11,110.0,2,3,0,3.69,0.0,106.31,6.43,22.5,3.98,32.91,73.4],["25-06-25",4,10,960.0,0,-1,0,0.0,0.0,960.0,37.69,262.5,15.92,316.11,643.89],["25-06-25",0,2,190.0,1,3,0,2.94,0.0,187.06,2.77,37.5,11.94,52.21,134.85],["25-06-28",5,2,170.0,0,-1,0,0.0,0.0,170.0,2.77,37.5,11.94,52.21,117.79],["25-06-28",0,9,300.0,0,-1,0,0.0,0.0,300.0,24.09,72.0,10.62,106.71,193.29],["25-06-30",4,6,3800.0,2,2,0,148.2,0.0,3651.8,208.54,1280.0,23.88,1512.42,2139.38],["25-06-30",3,0,170.0,3,-1,6,0.0,5.95,175.95,6.28,39.0,5.31,50.59,125.36],["25-07-01",5,2,200.0,1,0,0,3.3,0.0,196.7,2.77,37.5,11.94,52.21,144.49],["25-07-02",0,0,170.0,2,3,0,5.7,0.0,164.3,6.28,39.0,5.31,50.59,113.71],["25-07-03",5,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["25-07-03",0,9,300.0,0,-1,0,0.0,0.0,300.0,24.09,72.0,10.62,106.71,193.29],["25-07-05",4,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["25-07-09",3,4,610.0,3,-1,12,0.0,27.45,637.45,15.73,208.0,11.94,235.67,401.78],["25-07-12",5,12,440.0,2,2,0,17.16,0.0,422.84,38.79,136.5,15.92,191.21,231.63],["25-07-12",1,2,200.0,0,-1,0,0.0,0.0,200.0,2.77,37.5,11.94,52.21,147.79],["25-07-12",1,11,100.0,1,2,0,1.9,0.0,98.1,6.43,22.5,3.98,32.91,65.19],["25-07-15",1,2,200.0,0,-1,0,0.0,0.0,200.0,2.77,37.5,11.94,52.21,147.79],["25-07-16",1,12,490.0,1,2,0,9.31,0.0,480.69,38.79,136.5,15.92,191.21,289.48],["25-07-16",4,8,230.0,0,-1,0,0.0,0.0,230.0,5.08,54.0,7.96,67.04,162.96],["25-07-22",4,7,270.0,3,-1,2,0.0,6.75,276.75,10.82,66.0,7.96,84.78,191.97],["25-07-29",3,8,240.0,0,-1,0,0.0,0.0,240.0,5.08,54.0,7.96,67.04,172.96],["25-07-31",5,5,2170.0,2,1,0,79.2,0.0,2090.8,98.54,630.0,31.85,760.39,1330.41],["25-08-01",3,2,180.0,2,3,0,6.03,0.0,173.97,2.77,37.5,11.94,52.21,121.76],["25-08-01",3,7,260.0,1,0,0,4.29,0.0,255.71,10.82,66.0,7.96,84.78,170.93],["25-08-02",5,2,170.0,1,3,0,2.63,0.0,167.37,2.77,37.5,11.94,52.21,115.16],["25-08-06",3,15,1270.0,0,-1,0,0.0,0.0,1270.0,26.33,380.0,23.88,430.21,839.79],["25-08-06",2,9,320.0,3,-1,12,0.0,14.4,334.4,24.09,72.0,10.62,106.71,227.69],["25-08-07",1,1,1020.0,2,3,0,34.17,0.0,985.83,59.21,311.5,23.88,394.59,591.24],["25-08-07",4,7,290.0,3,-1,2,0.0,7.25,297.25,10.82,66.0,7.96,84.78,212.47],["25-08-08",3,1,1190.0,1,1,0,20.83,0.0,1169.17,59.21,311.5,23.88,394.59,774.58],["25-08-09",5,7,290.0,1,3,0,4.5,0.0,285.5,10.82,66.0,7.96,84.78,200.72],["25-08-11",3,2,190.0,1,2,0,3.61,0.0,186.39,2.77,37.5,11.94,52.21,134.18],["25-08-11",1,11,120.0,0,-1,0,0.0,0.0,120.0,6.43,22.5,3.98,32.91,87.09],["25-08-15",2,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["25-08-18",5,14,1810.0,2,2,0,70.59,0.0,1739.41,44.23,580.0,39.81,664.04,1075.37],["25-08-23",3,10,920.0,1,2,0,17.48,0.0,902.52,37.69,262.5,15.92,316.11,586.41],["25-08-23",3,11,110.0,2,2,0,4.29,0.0,105.71,6.43,22.5,3.98,32.91,72.8],["25-08-26",0,11,110.0,1,0,0,1.82,0.0,108.18,6.43,22.5,3.98,32.91,75.27],["25-08-26",0,1,1150.0,0,-1,0,0.0,0.0,1150.0,59.21,311.5,23.88,394.59,755.41],["25-08-27",3,12,490.0,0,-1,0,0.0,0.0,490.0,38.79,136.5,15.92,191.21,298.79],["25-08-29",1,15,1170.0,0,-1,0,0.0,0.0,1170.0,26.33,380.0,23.88,430.21,739.79],["25-09-02",2,8,220.0,2,4,0,7.04,0.0,212.96,5.08,54.0,7.96,67.04,145.92],["25-09-03",1,3,870.0,0,-1,0,0.0,0.0,870.0,32.23,238.0,15.92,286.15,583.85],["25-09-04",0,0,170.0,0,-1,0,0.0,0.0,170.0,6.28,39.0,5.31,50.59,119.41],["25-09-04",5,7,290.0,0,-1,0,0.0,0.0,290.0,10.82,66.0,7.96,84.78,205.22],["25-09-08",4,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["25-09-10",3,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["25-09-11",2,2,190.0,0,-1,0,0.0,0.0,190.0,2.77,37.5,11.94,52.21,137.79],["25-09-12",4,11,110.0,1,1,0,1.93,0.0,108.07,6.43,22.5,3.98,32.91,75.16],["25-09-12",1,0,170.0,2,2,0,6.63,0.0,163.37,6.28,39.0,5.31,50.59,112.78],["25-09-13",3,15,1080.0,1,1,0,18.9,0.0,1061.1,26.33,380.0,23.88,430.21,630.89],["25-09-13",1,4,660.0,0,-1,0,0.0,0.0,660.0,15.73,208.0,11.94,235.67,424.33],["25-09-16",2,8,230.0,0,-1,0,0.0,0.0,230.0,5.08,54.0,7.96,67.04,162.96],["25-09-18",1,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["25-09-18",0,12,480.0,0,-1,0,0.0,0.0,480.0,38.79,136.5,15.92,191.21,288.79],["25-09-19",0,0,160.0,0,-1,0,0.0,0.0,160.0,6.28,39.0,5.31,50.59,109.41],["25-09-20",0,14,1700.0,2,0,0,59.5,0.0,1640.5,44.23,580.0,39.81,664.04,976.46],["25-09-20",3,9,320.0,0,-1,0,0.0,0.0,320.0,24.09,72.0,10.62,106.71,213.29],["25-09-25",0,10,930.0,2,2,0,36.27,0.0,893.73,37.69,262.5,15.92,316.11,577.62],["25-09-25",4,0,150.0,2,2,0,5.85,0.0,144.15,6.28,39.0,5.31,50.59,93.56],["25-09-26",5,12,520.0,0,-1,0,0.0,0.0,520.0,38.79,136.5,15.92,191.21,328.79],["25-09-26",5,3,910.0,1,1,0,15.93,0.0,894.07,32.23,238.0,15.92,286.15,607.92],["25-09-27",0,7,250.0,1,2,0,4.75,0.0,245.25,10.82,66.0,7.96,84.78,160.47],["25-09-30",4,13,180.0,0,-1,0,0.0,0.0,180.0,7.4,48.0,7.96,63.36,116.64],["25-10-02",1,11,110.0,2,1,0,4.01,0.0,105.99,6.43,22.5,3.98,32.91,73.08],["25-10-02",2,5,2350.0,2,0,0,82.25,0.0,2267.75,98.54,630.0,31.85,760.39,1507.36],["25-10-10",0,8,240.0,3,-1,10,0.0,8.4,248.4,5.08,54.0,7.96,67.04,181.36],["25-10-13",1,11,120.0,1,1,0,2.1,0.0,117.9,6.43,22.5,3.98,32.91,84.99],["25-10-14",1,8,220.0,2,3,0,7.37,0.0,212.63,5.08,54.0,7.96,67.04,145.59],["25-10-17",3,2,180.0,3,-1,3,0.0,4.5,184.5,2.77,37.5,11.94,52.21,132.29],["25-10-18",1,1,1140.0,1,4,0,15.96,0.0,1124.04,59.21,311.5,23.88,394.59,729.45],["25-10-20",0,3,770.0,0,-1,0,0.0,0.0,770.0,32.23,238.0,15.92,286.15,483.85],["25-10-27",3,9,320.0,2,4,0,10.24,0.0,309.76,24.09,72.0,10.62,106.71,203.05],["25-10-28",5,14,1630.0,2,4,0,52.16,0.0,1577.84,44.23,580.0,39.81,664.04,913.8],["25-10-31",0,2,190.0,1,0,0,3.14,0.0,186.86,2.77,37.5,11.94,52.21,134.65],["25-10-31",5,15,1120.0,1,4,0,15.68,0.0,1104.32,26.33,380.0,23.88,430.21,674.11],["25-11-01",4,12,490.0,1,2,0,9.31,0.0,480.69,38.79,136.5,15.92,191.21,289.48],["25-11-05",1,7,250.0,0,-1,0,0.0,0.0,250.0,10.82,66.0,7.96,84.78,165.22],["25-11-05",1,10,950.0,3,-1,3,0.0,23.75,973.75,37.69,262.5,15.92,316.11,657.64],["25-11-07",3,13,210.0,0,-1,0,0.0,0.0,210.0,7.4,48.0,7.96,63.36,146.64],["25-11-08",1,2,180.0,3,-1,3,0.0,4.5,184.5,2.77,37.5,11.94,52.21,132.29],["25-11-08",4,15,1100.0,0,-1,0,0.0,0.0,1100.0,26.33,380.0,23.88,430.21,669.79],["25-11-08",2,11,100.0,2,1,0,3.65,0.0,96.35,6.43,22.5,3.98,32.91,63.44],["25-11-10",0,0,170.0,1,4,0,2.38,0.0,167.62,6.28,39.0,5.31,50.59,117.03],["25-11-10",4,2,200.0,2,0,0,7.0,0.0,193.0,2.77,37.5,11.94,52.21,140.79],["25-11-11",4,9,300.0,0,-1,0,0.0,0.0,300.0,24.09,72.0,10.62,106.71,193.29],["25-11-12",5,13,210.0,0,-1,0,0.0,0.0,210.0,7.4,48.0,7.96,63.36,146.64],["25-11-14",3,5,2160.0,2,2,0,84.24,0.0,2075.76,98.54,630.0,31.85,760.39,1315.37],["25-11-17",1,8,230.0,1,3,0,3.56,0.0,226.44,5.08,54.0,7.96,67.04,159.4],["25-11-18",4,12,500.0,2,4,0,16.0,0.0,484.0,38.79,136.5,15.92,191.21,292.79],["25-11-19",2,11,110.0,3,-1,12,0.0,4.95,114.95,6.43,22.5,3.98,32.91,82.04],["25-11-20",2,7,260.0,0,-1,0,0.0,0.0,260.0,10.82,66.0,7.96,84.78,175.22],["25-11-20",2,9,280.0,0,-1,0,0.0,0.0,280.0,24.09,72.0,10.62,106.71,173.29],["25-11-21",4,12,440.0,2,0,0,15.4,0.0,424.6,38.79,136.5,15.92,191.21,233.39],["25-11-25",1,4,680.0,2,1,0,24.82,0.0,655.18,15.73,208.0,11.94,235.67,419.51],["25-11-27",5,0,150.0,1,3,0,2.33,0.0,147.67,6.28,39.0,5.31,50.59,97.08],["25-11-28",5,8,210.0,0,-1,0,0.0,0.0,210.0,5.08,54.0,7.96,67.04,142.96],["25-12-01",2,2,170.0,2,3,0,5.7,0.0,164.3,2.77,37.5,11.94,52.21,112.09],["25-12-03",1,2,190.0,1,0,0,3.14,0.0,186.86,2.77,37.5,11.94,52.21,134.65],["25-12-05",4,12,500.0,3,-1,6,0.0,17.5,517.5,38.79,136.5,15.92,191.21,326.29],["25-12-06",5,12,510.0,1,3,0,7.91,0.0,502.09,38.79,136.5,15.92,191.21,310.88],["25-12-06",4,8,220.0,2,1,0,8.03,0.0,211.97,5.08,54.0,7.96,67.04,144.93],["25-12-06",3,14,1770.0,0,-1,0,0.0,0.0,1770.0,44.23,580.0,39.81,664.04,1105.96],["25-12-08",5,10,870.0,0,-1,0,0.0,0.0,870.0,37.69,262.5,15.92,316.11,553.89],["25-12-09",2,8,220.0,0,-1,0,0.0,0.0,220.0,5.08,54.0,7.96,67.04,152.96],["25-12-16",5,2,180.0,0,-1,0,0.0,0.0,180.0,2.77,37.5,11.94,52.21,127.79],["25-12-16",0,7,290.0,0,-1,0,0.0,0.0,290.0,10.82,66.0,7.96,84.78,205.22],["25-12-16",0,8,210.0,3,-1,3,0.0,5.25,215.25,5.08,54.0,7.96,67.04,148.21],["25-12-18",1,2,190.0,1,2,0,3.61,0.0,186.39,2.77,37.5,11.94,52.21,134.18],["25-12-18",0,12,470.0,0,-1,0,0.0,0.0,470.0,38.79,136.5,15.92,191.21,278.79],["25-12-18",1,13,200.0,1,1,0,3.5,0.0,196.5,7.4,48.0,7.96,63.36,133.14],["25-12-22",3,14,1940.0,1,0,0,32.01,0.0,1907.99,44.23,580.0,39.81,664.04,1243.95],["25-12-23",4,2,190.0,2,1,0,6.93,0.0,183.07,2.77,37.5,11.94,52.21,130.86],["25-12-24",5,4,590.0,1,1,0,10.33,0.0,579.67,15.73,208.0,11.94,235.67,344.0],["25-12-29",2,7,280.0,0,-1,0,0.0,0.0,280.0,10.82,66.0,7.96,84.78,195.22],["25-12-29",2,13,190.0,2,2,0,7.41,0.0,182.59,7.4,48.0,7.96,63.36,119.23],["25-12-29",2,0,160.0,0,-1,0,0.0,0.0,160.0,6.28,39.0,5.31,50.59,109.41],["25-12-30",0,4,640.0,1,4,0,8.96,0.0,631.04,15.73,208.0,11.94,235.67,395.37],["25-12-30",1,12,440.0,2,1,0,16.06,0.0,423.94,38.79,136.5,15.92,191.21,232.73],["25-12-30",5,8,240.0,3,-1,3,0.0,6.0,246.0,5.08,54.0,7.96,67.04,178.96],["25-12-31",3,14,1940.0,0,-1,0,0.0,0.0,1940.0,44.23,580.0,39.81,664.04,1275.96]]};
+const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const PAL=['#0E7C6B','#3B6B8C','#B5872C','#C1503A','#5A6E74','#7FBFB2','#8DA2A8','#16292E','#A379B8','#D3A88C'];
+const brl=v=>'R$ '+Math.round(v).toLocaleString('pt-BR');
+const brl2=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=(v,d=1)=>(v*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
+const dlt=v=>v==null||!isFinite(v)?'—':(v>=0?'+':'')+pct(v);
+const num=(v,d=1)=>v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const C=D.cols.reduce((a,c,i)=>(a[c]=i,a),{});
+
+const V=D.vendas.map(r=>{
+  const[y,m,dd]=r[C.data].split('-').map(Number);
+  const p=D.procedimentos[r[C.proc]];
+  return{ano:2000+y,mes:m,ym:(2000+y)*100+m,dow:(new Date(2000+y,m-1,dd).getDay()+6)%7,
+    dent:r[C.dent],proc:r[C.proc],cat:D.procMeta[p].cat,min:D.procMeta[p].min,ms:D.procMeta[p].ms,
+    valor:r[C.valor],forma:r[C.forma],oper:r[C.oper],parc:r[C.parc],custoOper:r[C.custoOper],
+    juros:r[C.juros],liquido:r[C.liquido],custoMat:r[C.custoMat],custoDent:r[C.custoDent],
+    custoAsb:r[C.custoAsb],custoTotal:r[C.custoTotal],lucro:r[C.lucro]};
+});
+const ANOS=[...new Set(V.map(r=>r.ano))].sort();
+const CATS=[...new Set(V.map(r=>r.cat))].sort();
+let fAno=0,fDent=-1,fCat='';
+const filt=(a=fAno,d=fDent,c=fCat)=>V.filter(r=>(a===0||r.ano===a)&&(d===-1||r.dent===d)&&(!c||r.cat===c));
+const S=(rs,k)=>rs.reduce((a,r)=>a+r[k],0);
+const G=(rs,f,k)=>{const m=new Map();rs.forEach(r=>m.set(f(r),(m.get(f(r))||0)+(k?r[k]:1)));return m};
+const ser=(rs,k)=>[...G(rs,r=>r.ym,k).entries()].sort((a,b)=>a[0]-b[0]);
+const lbl=k=>MESES[k%100-1]+'/'+String(Math.floor(k/100)).slice(2);
+// Capacidade de referência: benchmark do próprio histórico (melhor decil de horas/mês),
+// não um teórico de jornada integral — a clínica opera em regime parcial.
+// Ajustável pelo controle "Meta de ocupação" na aba Capacidade.
+const _hm=[...G(V,r=>r.ym,'min').values()].map(x=>x/60).sort((a,b)=>a-b);
+const BENCH_H_MES=_hm[Math.floor(_hm.length*0.9)]||1;   // ~p90 de horas/mês da clínica inteira
+let META_MULT=1.0;                                       // multiplicador de meta (slider)
+const capMin=(nMeses,nDent)=>(nDent/D.dentistas.length)*BENCH_H_MES*META_MULT*60*nMeses;
+
+Chart.defaults.font.family="'Archivo',sans-serif";Chart.defaults.font.size=11;
+Chart.defaults.color='#5A6E74';Chart.defaults.borderColor='#EAEFED';
+Chart.defaults.plugins.legend.labels.boxWidth=9;Chart.defaults.plugins.legend.labels.boxHeight=9;
+Chart.defaults.plugins.legend.labels.usePointStyle=true;Chart.defaults.plugins.legend.labels.padding=12;
+Chart.defaults.plugins.tooltip.backgroundColor='#16292E';
+Chart.defaults.plugins.tooltip.titleFont={family:"'IBM Plex Mono',monospace",size:11};
+Chart.defaults.plugins.tooltip.bodyFont={family:"'IBM Plex Mono',monospace",size:11};
+Chart.defaults.plugins.tooltip.padding=10;Chart.defaults.plugins.tooltip.cornerRadius=6;
+const CH={};const mk=(id,c)=>{if(CH[id])CH[id].destroy();CH[id]=new Chart(document.getElementById(id),c);return CH[id]};
+
+/* ---- controles ---- */
+const seg=document.getElementById('segAno');
+[['Todos',0],...ANOS.map(a=>[''+a,a])].forEach(([t,v])=>{const b=document.createElement('button');
+  b.textContent=t;b.dataset.v=v;if(v===fAno)b.classList.add('on');
+  b.onclick=()=>{fAno=+b.dataset.v;[...seg.children].forEach(x=>x.classList.toggle('on',x===b));render()};seg.appendChild(b)});
+const sd=document.getElementById('selDent');
+D.dentistas.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d;sd.appendChild(o)});
+sd.onchange=()=>{fDent=+sd.value;render()};
+const sc=document.getElementById('selCat');
+CATS.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sc.appendChild(o)});
+sc.onchange=()=>{fCat=sc.value;render()};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p));});
+
+const kpi=(l,v,d,c)=>`<div class="card kpi"><div class="lbl">${l}</div><div class="val">${v}</div>
+  <div class="dlt ${c}">${d}</div></div>`;
+const kpiNS=(l,v,d,c)=>`<div class="card kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="dlt ${c}">${d}</div></div>`;
+const insight=(el,t,b)=>document.getElementById(el).innerHTML=
+  `<div class="insight"><svg><use href="#molar"/></svg><div><div class="t">${t}</div><div class="b">${b}</div></div></div>`;
+
+/* ================= RENDER ================= */
+function render(){
+  const rs=filt(), prev=fAno===0?[]:filt(fAno-1);
+  const fat=S(rs,'valor'),liq=S(rs,'liquido'),luc=S(rs,'lucro'),q=rs.length;
+  const mg=fat?luc/fat:0,tk=q?fat/q:0,mins=S(rs,'min');
+  document.getElementById('ftP').textContent=(fAno===0?'2021–2025':fAno)+(fDent===-1?' · todos os dentistas':' · '+D.dentistas[fDent])+(fCat?' · '+fCat:'');
+  p1(rs,prev,fat,liq,luc,q,mg,tk);p2(rs,fat,liq,luc,mins);p3(rs,mins,fat,luc,q);p4(rs,fat);p5(rs,fat);
+}
+
+/* ---------- I ---------- */
+function p1(rs,prev,fat,liq,luc,q,mg,tk){
+  const fatL=prev.length?S(prev,'valor'):null,lucL=prev.length?S(prev,'lucro'):null;
+  const yoy=fatL?(fat-fatL)/fatL:null,mgL=fatL?lucL/fatL:null,tkL=prev.length?fatL/prev.length:null;
+  const K=[
+    ['a','Faturamento bruto',brl(fat),fAno===0?'período completo':dlt(yoy)+' vs '+(fAno-1),yoy==null?'nt':yoy>=0?'up':'dn'],
+    ['b','Receita líquida',brl(liq),pct(fat?(fat-liq)/fat:0)+' de deduções','nt'],
+    ['c','Lucro bruto',brl(luc),lucL?dlt((luc-lucL)/lucL)+' vs '+(fAno-1):'após custos diretos',lucL?(luc>=lucL?'up':'dn'):'nt'],
+    ['d','Margem bruta',pct(mg),mgL?((mg>=mgL?'+':'')+num((mg-mgL)*100)+' p.p. vs '+(fAno-1)):'lucro ÷ faturamento',mgL?(mg>=mgL?'up':'dn'):'nt'],
+    ['e','Atendimentos',q.toLocaleString('pt-BR'),prev.length?dlt((q-prev.length)/prev.length)+' vs '+(fAno-1):(fDent===-1?D.dentistas.length+' dentistas ativos':'1 dentista'),prev.length?(q>=prev.length?'up':'dn'):'nt'],
+    ['f','Ticket médio',brl(tk),tkL?dlt((tk-tkL)/tkL)+' vs '+(fAno-1):'por atendimento',tkL?(tk>=tkL?'up':'dn'):'nt'],
+  ];
+  document.getElementById('kpiRow').innerHTML=K.map(k=>kpi(...k.slice(1))).join('');
+
+  // insight dinâmico
+  const all=filt(0,fDent,fCat);
+  const f1=S(all.filter(r=>r.ano===ANOS[0]),'valor'),fN=S(all.filter(r=>r.ano===ANOS.at(-1)),'valor');
+  const m1=S(all.filter(r=>r.ano===ANOS[0]),'lucro')/f1,mN=S(all.filter(r=>r.ano===ANOS.at(-1)),'lucro')/fN;
+  const q1=all.filter(r=>r.ano===ANOS[0]).length,qN=all.filter(r=>r.ano===ANOS.at(-1)).length;
+  const t1=f1/q1,tN=fN/qN;
+  if(!q1||!qN||!f1||!fN){
+    insight('insight1','A leitura do período',
+      `Este recorte tem <b>${q.toLocaleString('pt-BR')} atendimentos</b> e <b>${brl(fat)}</b> de receita, com margem de <b>${pct(mg)}</b> e ticket médio de <b>${brl(tk)}</b>. Não há movimento em ${ANOS[0]} e ${ANOS.at(-1)} simultaneamente para comparar a evolução — amplie o filtro para ver a trajetória completa.`);
+  }else{
+    insight('insight1','A leitura do período',
+      `A receita ${fN<f1?'recuou':'avançou'} <b>${dlt((fN-f1)/f1)}</b> entre ${ANOS[0]} e ${ANOS.at(-1)}, mas a margem bruta <b>${mN>=m1?'subiu':'caiu'} ${num(Math.abs(mN-m1)*100)} p.p.</b> (de ${pct(m1)} para ${pct(mN)}). O volume ${qN<q1?'caiu':'subiu'} ${dlt((qN-q1)/q1)} enquanto o ticket médio ${tN>=t1?'subiu':'caiu'} ${dlt((tN-t1)/t1)} — a clínica está <b>trocando volume por procedimentos de maior valor</b>. O risco é a ociosidade da cadeira: veja a aba Capacidade.`);
+  }
+
+  // granularidade adaptativa: anual quando "Todos", mensal quando um ano é selecionado
+  const anual=fAno===0;
+  let labels,dFat,dLuc,mm,tLabel;
+  if(anual){
+    labels=ANOS.map(String);
+    dFat=ANOS.map(a=>S(rs.filter(r=>r.ano===a),'valor'));
+    dLuc=ANOS.map(a=>S(rs.filter(r=>r.ano===a),'lucro'));
+    mm=null; tLabel='Faturamento anual';
+  }else{
+    const byM=[...Array(12)].map((_,i)=>rs.filter(r=>r.mes===i+1));
+    labels=MESES;
+    dFat=byM.map(w=>S(w,'valor'));
+    dLuc=byM.map(w=>S(w,'lucro'));
+    mm=dFat.map((_,i)=>{const w=dFat.slice(Math.max(0,i-2),i+1);return w.reduce((a,x)=>a+x,0)/w.length});
+    tLabel='Faturamento mensal';
+  }
+  document.getElementById('capMensal').textContent=anual
+    ?'Receita e lucro bruto por ano — selecione um ano para ver a abertura mensal'
+    :'Receita mensal de '+fAno+', média móvel 3M e lucro bruto';
+  const dsets=[
+    {type:'bar',label:tLabel,data:dFat,backgroundColor:'#0E7C6B',borderRadius:3,barPercentage:anual?.55:.72,order:3},
+    {type:'line',label:'Lucro bruto',data:dLuc,borderColor:'#B5872C',borderWidth:2,pointRadius:anual?3:0,tension:.3,borderDash:[4,3],order:2}
+  ];
+  if(mm)dsets.splice(1,0,{type:'line',label:'Média móvel 3M',data:mm,borderColor:'#16292E',borderWidth:2,pointRadius:0,tension:.3,order:1});
+  mk('chMensal',{data:{labels,datasets:dsets},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+brl(c.parsed.y)}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12}},y:{ticks:{callback:v=>'R$ '+v/1000+'k'}}}}});
+
+  // ponte preço × volume — só faz sentido com movimento nos dois anos extremos
+  const dQ=(q1&&qN)?(qN-q1)*t1:0, dP=(q1&&qN)?(tN-t1)*qN:0;
+  const pontePronta=q1>0&&qN>0;
+  mk('chPonte',{type:'bar',data:{labels:[''+ANOS[0],'Volume','Preço/mix',''+ANOS.at(-1)],
+    datasets:[{data:pontePronta?[[0,f1],[f1,f1+dQ],[f1+dQ,f1+dQ+dP],[0,fN]]:[[0,0],[0,0],[0,0],[0,0]],
+    backgroundColor:['#16292E',dQ>=0?'#0E7C6B':'#C1503A',dP>=0?'#0E7C6B':'#C1503A','#0E7C6B'],borderRadius:3,barPercentage:.65}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+    title:pontePronta?{display:false}:{display:true,text:'Sem movimento em '+ANOS[0]+' ou '+ANOS.at(-1)+' para este filtro',
+      font:{family:"'Archivo',sans-serif",size:12},color:'#8DA2A8'},
+    tooltip:{enabled:pontePronta,callbacks:{label:c=>{const[a,b]=c.raw;return(b-a>=0?'+':'')+brl(b-a)}}}},
+    scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'R$ '+v/1000+'k'}}}}});
+
+  const mc=[...G(rs,r=>r.cat,'valor').entries()].sort((a,b)=>b[1]-a[1]);
+  mk('chCat',{type:'bar',data:{labels:mc.map(e=>e[0]),datasets:[{data:mc.map(e=>e[1]),
+    backgroundColor:mc.map((_,i)=>PAL[i%PAL.length]),borderRadius:3}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>brl(c.parsed.x)+'  ·  '+pct(c.parsed.x/S(rs,'valor'))}}},
+    scales:{x:{ticks:{callback:v=>'R$ '+v/1000+'k'}},y:{grid:{display:false}}}}});
+
+  const mgc=mc.map(([c])=>{const cr=rs.filter(r=>r.cat===c);return{c,m:S(cr,'lucro')/S(cr,'valor')}}).sort((a,b)=>b.m-a.m);
+  mk('chCatMg',{type:'bar',data:{labels:mgc.map(e=>e.c),datasets:[{data:mgc.map(e=>e.m*100),
+    backgroundColor:mgc.map(e=>e.m>=.58?'#0E7C6B':e.m>=.53?'#7FBFB2':'#C1503A'),borderRadius:3}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>'Margem: '+num(c.parsed.x)+'%'}}},
+    scales:{x:{ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}});
+
+  const sw=DIAS.map((_,i)=>rs.filter(r=>r.dow===i));
+  mk('chSemana',{data:{labels:DIAS,datasets:[
+    {type:'line',label:'Receita',data:sw.map(x=>S(x,'valor')),borderColor:'#16292E',borderWidth:2.4,pointRadius:3,pointBackgroundColor:'#16292E',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:.3,yAxisID:'y1',order:0},
+    {type:'bar',label:'Atendimentos',data:sw.map(x=>x.length),backgroundColor:DIAS.map((_,i)=>i>=5?'#B5872C':'#0E7C6B'),borderRadius:3,yAxisID:'y',order:1}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.dataset.type==='line'?brl(c.parsed.y):c.parsed.y)}}},
+    scales:{x:{grid:{display:false}},y:{beginAtZero:true},y1:{position:'right',grid:{display:false},ticks:{callback:v=>'R$ '+v/1000+'k'}}}}});
+}
+
+/* ---------- II ---------- */
+function p2(rs,fat,liq,luc,mins){
+  const oper=S(rs,'custoOper'),juros=S(rs,'juros'),mat=S(rs,'custoMat'),mo=S(rs,'custoDent')+S(rs,'custoAsb');
+  const cmMin=mins?luc/mins:0;
+  const abaixo=D.procedimentos.map((p,i)=>{const pr=rs.filter(r=>r.proc===i);if(!pr.length)return null;
+    const f=S(pr,'valor'),l=S(pr,'lucro');return{p,f,m:l/f,ms:D.procMeta[p].ms}}).filter(Boolean).filter(x=>x.m<x.ms);
+  const perdaMg=abaixo.reduce((a,x)=>a+(x.ms-x.m)*x.f,0);
+  document.getElementById('kpiRent').innerHTML=[
+    kpiNS('Margem de contribuição',brl(luc),pct(fat?luc/fat:0)+' da receita bruta','nt'),
+    kpiNS('MC por minuto de cadeira','R$ '+num(cmMin,2),'referência para priorizar agenda','gd'),
+    kpiNS('Custo de mão de obra',brl(mo),pct(fat?mo/fat:0)+' da receita · maior linha de custo','nt'),
+    kpiNS('Receita abaixo da meta',brl(abaixo.reduce((a,x)=>a+x.f,0)),abaixo.length+' procedimentos · '+brl(perdaMg)+' de margem não capturada',perdaMg>0?'dn':'up'),
+  ].join('');
+  insight('insight2','Onde está a margem',
+    `Materiais representam apenas <b>${pct(fat?mat/fat:0)}</b> da receita — o custo que realmente move o resultado é a <b>mão de obra (${pct(fat?mo/fat:0)})</b>, majoritariamente comissão variável do dentista. Isso significa que ganho de margem vem de <b>mix e precificação</b>, não de compras. Hoje <b>${abaixo.length} procedimentos</b> operam abaixo da margem-alvo, deixando <b>${brl(perdaMg)}</b> na mesa.`);
+
+  const st=[{l:'Bruto',v:fat,b:1,c:'#16292E'},{l:'Taxas cartão',v:-oper,c:'#C1503A'},{l:'Juros carnê',v:juros,c:'#B5872C'},
+    {l:'Líquido',t:liq,c:'#3B6B8C'},{l:'Materiais',v:-mat,c:'#C1503A'},{l:'Mão de obra',v:-mo,c:'#C1503A'},{l:'Lucro',t:luc,c:'#0E7C6B'}];
+  let run=0;const dt=[],cl=[];
+  st.forEach(s=>{if(s.t!=null){dt.push([0,s.t]);run=s.t}else if(s.b){dt.push([0,s.v]);run=s.v}else{dt.push([run,run+s.v]);run+=s.v}cl.push(s.c)});
+  mk('chWf',{type:'bar',data:{labels:st.map(s=>s.l),datasets:[{data:dt,backgroundColor:cl,borderRadius:3,barPercentage:.7}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>{const[a,b]=c.raw;return brl(b-a)}}}},
+    scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'R$ '+v/1000+'k'}}}}});
+
+  // Distância da meta, em pontos percentuais: à direita do zero = acima da meta
+  const gap=D.procedimentos.map((p,i)=>{const w=rs.filter(r=>r.proc===i);if(!w.length)return null;
+    const f=S(w,'valor');if(!f)return null;
+    const l=S(w,'lucro'),m=l/f,ms=D.procMeta[p].ms;
+    return{p,f,m,ms,g:(m-ms)*100,q:w.length}}).filter(Boolean).sort((a,b)=>a.g-b.g);
+  mk('chScatter',{type:'bar',data:{labels:gap.map(x=>x.p),datasets:[{
+    data:gap.map(x=>x.g),backgroundColor:gap.map(x=>x.g>=0?'#0E7C6B':'#C1503A'),borderRadius:3,barPercentage:.8}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:c=>c[0].label,label:c=>{const d=gap[c.dataIndex];if(!d)return'';
+        return[(d.g>=0?'Acima da meta em ':'Abaixo da meta em ')+num(Math.abs(d.g),1)+' p.p.',
+               'Margem real '+pct(d.m)+' · meta '+pct(d.ms),'Receita '+brl(d.f)+' · '+d.q+' atendimentos']}}}},
+    scales:{x:{title:{display:true,text:'← abaixo da meta   ·   pontos percentuais   ·   acima da meta →',font:{size:10.5}},
+      grid:{color:c=>c.tick.value===0?'#16292E':'#EAEFED',lineWidth:c=>c.tick.value===0?1.5:1},
+      ticks:{callback:v=>(v>0?'+':'')+v}},
+      y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+
+  const pr=D.procedimentos.map((p,i)=>{const w=rs.filter(r=>r.proc===i);if(!w.length)return null;
+    const f=S(w,'valor'),l=S(w,'lucro'),mn=S(w,'min');
+    return{p,cat:D.procMeta[p].cat,q:w.length,f,l,m:l/f,ms:D.procMeta[p].ms,mn,cm:l/mn,tk:f/w.length}})
+    .filter(Boolean).sort((a,b)=>b.cm-a.cm);
+  const maxCm=Math.max(...pr.map(x=>x.cm));
+  document.getElementById('tbProc').innerHTML=
+   `<thead><tr><th>Procedimento</th><th>Categoria</th><th>Atend.</th><th>Ticket</th><th>Receita</th><th>Margem</th><th>Meta</th><th>MC/min</th><th style="text-align:left">Prioridade de agenda</th></tr></thead><tbody>`+
+   pr.map(x=>`<tr><td>${x.p}</td><td style="font-family:Archivo;font-size:11.5px;color:var(--ink-soft)">${x.cat}</td>
+   <td>${x.q}</td><td>${brl(x.tk)}</td><td>${brl(x.f)}</td>
+   <td><span class="chip ${x.m<x.ms?'w':''}">${pct(x.m)}</span></td><td class="nt">${pct(x.ms)}</td>
+   <td><b>R$ ${num(x.cm,2)}</b></td>
+   <td style="text-align:left"><div class="bar"><i class="${x.m<x.ms?'w':''}" style="width:${x.cm/maxCm*100}%"></i></div></td></tr>`).join('')+
+   `</tbody><tfoot><tr><td>Total</td><td></td><td>${rs.length}</td><td>${brl(fat/rs.length)}</td><td>${brl(fat)}</td>
+   <td>${pct(luc/fat)}</td><td></td><td>R$ ${num(cmMin,2)}</td><td></td></tr></tfoot>`;
+}
+
+/* ---------- III ---------- */
+function p3(rs,mins,fat,luc,q){
+  const nM=new Set(rs.map(r=>r.ym)).size||1;
+  const nD=fDent===-1?D.dentistas.length:1;
+  const cap=capMin(nM,nD),ocup=cap?mins/cap:0;
+  const horas=mins/60,recHora=horas?fat/horas:0,lucHora=horas?luc/horas:0;
+  const ociosas=Math.max(0,(cap-mins)/60);
+  const cmMin=mins?luc/mins:0;
+  document.getElementById('kpiCap').innerHTML=[
+    kpiNS('Horas clínicas ocupadas',num(horas,0).replace(',0','')+' h',nM+' meses · '+q+' atendimentos','nt'),
+    kpiNS('Taxa de ocupação',pct(ocup),'da capacidade instalada estimada',ocup>=.7?'up':ocup>=.45?'gd':'dn'),
+    kpiNS('Receita por hora clínica',brl(recHora),'lucro de '+brl(lucHora)+'/h','nt'),
+    kpiNS('Capacidade ociosa',num(ociosas,0).replace(',0','')+' h','potencial de '+brl(ociosas*60*cmMin)+' em margem','dn'),
+  ].join('');
+  const hMes=horas/nM;
+  insight('insight3','O gargalo real é a cadeira',
+    `A clínica ocupa hoje <b>${num(hMes,1)} h/mês</b> de cadeira${nD>1?' entre '+nD+' dentistas':''} — contra um benchmark de <b>${num(BENCH_H_MES*META_MULT*(nD/D.dentistas.length),1)} h/mês</b> já alcançado no melhor decil do próprio histórico. Isso deixa <b>${pct(1-Math.min(ocup,1))}</b> de folga. Como cada minuto ocupado gera <b>R$ ${num(cmMin,2)}</b> de margem, recuperar metade dessa folga valeria cerca de <b>${brl(ociosas*60*cmMin*.5)}</b> — <b>sem contratar</b>, apenas preenchendo agenda com o mix atual.`);
+
+  const sm=ser(rs,'min');
+  mk('chHoras',{data:{labels:sm.map(x=>lbl(x[0])),datasets:[
+    {type:'bar',label:'Horas ocupadas',data:sm.map(x=>x[1]/60),backgroundColor:'#0E7C6B',borderRadius:3,barPercentage:.75},
+    {type:'line',label:'Capacidade instalada',data:sm.map(()=>capMin(1,nD)/60),borderColor:'#C1503A',borderWidth:2,pointRadius:0,borderDash:[5,4]}]},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+num(c.parsed.y,0).replace(',0','')+' h'}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12}},y:{ticks:{callback:v=>v+' h'}}}}});
+
+  const cm=[...new Set(rs.map(r=>r.cat))].map(c=>{const w=rs.filter(r=>r.cat===c);
+    return{c,v:S(w,'lucro')/S(w,'min'),h:S(w,'min')/60}}).sort((a,b)=>b.v-a.v);
+  mk('chCmMin',{type:'bar',data:{labels:cm.map(e=>e.c),datasets:[{data:cm.map(e=>e.v),
+    backgroundColor:cm.map(e=>e.v>=cmMin?'#0E7C6B':'#C1503A'),borderRadius:3}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>'R$ '+num(c.parsed.x,2)+'/min  ·  '+num(cm[c.dataIndex].h,0).replace(',0','')+' h no período'}}},
+    scales:{x:{ticks:{callback:v=>'R$ '+num(v,1)}},y:{grid:{display:false}}}}});
+
+  const pd=D.dentistas.map((d,i)=>{const w=rs.filter(r=>r.dent===i);if(!w.length)return null;
+    const h=S(w,'min')/60,f=S(w,'valor'),l=S(w,'lucro');
+    return{d:d.replace('Dra. ','Dra.').replace('Dr. ','Dr.'),full:d,h,f,l,rh:f/h,lh:l/h,m:l/f,q:w.length,
+      oc:capMin(nM,1)?S(w,'min')/capMin(nM,1):0}}).filter(Boolean).sort((a,b)=>b.lh-a.lh);
+  mk('chProdDent',{type:'bar',data:{labels:pd.map(x=>x.full),datasets:[
+    {label:'Receita/hora',data:pd.map(x=>x.rh),backgroundColor:'#7FBFB2',borderRadius:3},
+    {label:'Lucro/hora',data:pd.map(x=>x.lh),backgroundColor:'#0E7C6B',borderRadius:3}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+brl(c.parsed.x)}}},
+    scales:{x:{ticks:{callback:v=>'R$ '+v}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+  const mxL=Math.max(...pd.map(x=>x.lh));
+  document.getElementById('tbDent').innerHTML=
+   `<thead><tr><th>Dentista</th><th>Atend.</th><th>Horas</th><th>Ocupação</th><th>Receita</th><th>Margem</th><th>Lucro/h</th><th style="text-align:left"></th></tr></thead><tbody>`+
+   pd.map(x=>`<tr><td>${x.full}</td><td>${x.q}</td><td>${num(x.h,0).replace(',0','')} h</td>
+   <td><span class="chip ${x.oc<.4?'w':x.oc<.6?'g':''}">${pct(x.oc)}</span></td><td>${brl(x.f)}</td>
+   <td>${pct(x.m)}</td><td><b>${brl(x.lh)}</b></td>
+   <td style="text-align:left"><div class="bar"><i style="width:${x.lh/mxL*100}%"></i></div></td></tr>`).join('')+
+   `</tbody><tfoot><tr><td>Clínica</td><td>${q}</td><td>${num(horas,0).replace(',0','')} h</td><td>${pct(ocup)}</td>
+   <td>${brl(fat)}</td><td>${pct(luc/fat)}</td><td>${brl(lucHora)}</td><td></td></tr></tfoot>`;
+
+  const rc=document.getElementById('rngCap'),lc=document.getElementById('lblCap');
+  lc.textContent=num(BENCH_H_MES*META_MULT,1)+' h/mês';
+  if(!rc._w){rc._w=1;rc.oninput=()=>{META_MULT=+rc.value/100;render()}}
+}
+
+/* ---------- IV ---------- */
+function p4(rs,fat){
+  const pr=D.procedimentos.map((p,i)=>{const w=rs.filter(r=>r.proc===i);if(!w.length)return null;
+    const f=S(w,'valor'),l=S(w,'lucro');return{p,cat:D.procMeta[p].cat,f,l,q:w.length,m:l/f}})
+    .filter(Boolean).sort((a,b)=>b.f-a.f);
+  let acc=0;pr.forEach(x=>{acc+=x.f;x.acc=acc/fat;x.cl=x.acc<=.8?'A':x.acc<=.95?'B':'C'});
+  const nA=pr.filter(x=>x.cl==='A').length,recA=pr.filter(x=>x.cl==='A').reduce((a,x)=>a+x.f,0);
+  const top1=pr[0];
+  if(!top1){
+    insight('insight4','Concentração e dependência',
+      `Não há atendimentos neste recorte para calcular a curva ABC. Amplie o filtro de ano, dentista ou categoria.`);
+  }else{
+    insight('insight4','Concentração e dependência',
+      `<b>${nA} de ${pr.length} procedimento${pr.length>1?'s':''}</b> (${pct(nA/pr.length)}) respondem por <b>${pct(recA/fat)}</b> da receita. Isoladamente, <b>${top1.p}</b> vale <b>${pct(top1.f/fat)}</b> do faturamento com margem de ${pct(top1.m)} — uma dependência que merece plano de contingência (agenda, insumo e profissional habilitado). A cauda C existe para <b>completar agenda</b> e alimentar o funil, não para sustentar resultado.`);
+  }
+
+  mk('chABC',{data:{labels:pr.map(x=>x.p),datasets:[
+    {type:'bar',label:'Receita',data:pr.map(x=>x.f),backgroundColor:pr.map(x=>x.cl==='A'?'#0E7C6B':x.cl==='B'?'#B5872C':'#8DA2A8'),borderRadius:3,yAxisID:'y'},
+    {type:'line',label:'% acumulado',data:pr.map(x=>x.acc*100),borderColor:'#16292E',borderWidth:2,pointRadius:2,tension:.2,yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{tooltip:{callbacks:{label:c=>c.datasetIndex?'Acumulado: '+num(c.parsed.y)+'%':'Receita: '+brl(c.parsed.y)}}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:9.5},maxRotation:60,minRotation:45}},
+    y:{ticks:{callback:v=>'R$ '+v/1000+'k'}},
+    y1:{position:'right',max:100,grid:{display:false},ticks:{callback:v=>v+'%'}}}}});
+
+  const cats=[...new Set(rs.map(r=>r.cat))];
+  const anos=fAno===0?ANOS:[fAno];
+  const base=filt(0,fDent,fCat);
+  mk('chMixAno',{type:'bar',data:{labels:anos,datasets:cats.map((c,i)=>({label:c,
+    data:anos.map(a=>{const w=base.filter(r=>r.ano===a);const t=S(w,'valor');return t?S(w.filter(r=>r.cat===c),'valor')/t*100:0}),
+    backgroundColor:PAL[i%PAL.length]}))},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom'},
+    tooltip:{callbacks:{label:c=>c.dataset.label+': '+num(c.parsed.y)+'%'}}},
+    scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+
+  document.getElementById('tbABC').innerHTML=
+   `<thead><tr><th>Classe</th><th>Procedimento</th><th>Categoria</th><th>Atend.</th><th>Receita</th><th>% Receita</th><th>% Acum.</th><th>Margem</th></tr></thead><tbody>`+
+   pr.map(x=>`<tr><td><span class="chip ${x.cl==='A'?'':x.cl==='B'?'g':'w'}">${x.cl}</span></td>
+   <td>${x.p}</td><td style="font-family:Archivo;font-size:11.5px;color:var(--ink-soft)">${x.cat}</td>
+   <td>${x.q}</td><td>${brl(x.f)}</td><td>${pct(x.f/fat)}</td><td>${pct(x.acc)}</td><td>${pct(x.m)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---------- V ---------- */
+function p5(rs,fat){
+  const cart=rs.filter(r=>r.forma===1||r.forma===2),carne=rs.filter(r=>r.forma===3),pix=rs.filter(r=>r.forma===0);
+  const rc=S(cart,'valor'),oper=S(rs,'custoOper'),juros=S(rs,'juros');
+  const txEf=rc?oper/rc:0,parcM=carne.length?carne.reduce((a,r)=>a+r.parc,0)/carne.length:0;
+  // prazo médio ponderado de recebimento
+  const prazoCart=rc?cart.reduce((a,r)=>a+r.valor*(D.prazo[D.operadoras[r.oper]]||1),0)/rc:0;
+  const prazoCarne=carne.length?carne.reduce((a,r)=>a+r.valor*(r.parc*30/2),0)/S(carne,'valor'):0;
+  const pmr=fat?(S(pix,'valor')*0+rc*prazoCart+S(carne,'valor')*prazoCarne)/fat:0;
+  document.getElementById('kpiCx').innerHTML=[
+    kpiNS('Prazo médio de recebimento',num(pmr,1)+' dias','ponderado por forma de pagamento',pmr<=10?'up':'gd'),
+    kpiNS('Custo de intermediação',brl(oper),'taxa efetiva de '+pct(txEf,2)+' sobre cartão','dn'),
+    kpiNS('Juros de carnê auferidos',brl(juros),num(parcM,1)+' parcelas médias · receita financeira','up'),
+    kpiNS('Recebimento à vista',pct(fat?S(pix,'valor')/fat:0),brl(S(pix,'valor'))+' via Pix, sem custo','up'),
+  ].join('');
+  insight('insight5','Liquidez e custo de recebimento',
+    `O Pix já responde por <b>${pct(fat?S(pix,'valor')/fat:0)}</b> da receita — é a forma mais barata e imediata, e cada ponto migrado do cartão para o Pix vale cerca de <b>${brl(fat*.01*txEf)}</b> por ano em taxa evitada. O carnê próprio alonga o prazo médio para <b>${num(pmr,1)} dias</b>, mas devolve <b>${brl(juros)}</b> em juros: é crédito rentável desde que a inadimplência siga controlada.`);
+
+  const mo=ser(rs,'custoOper'),mj=ser(rs,'juros');
+  const ks=[...new Set([...mo.map(x=>x[0]),...mj.map(x=>x[0])])].sort();
+  const gv=(s,k)=>{const f=s.find(x=>x[0]===k);return f?f[1]:0};
+  mk('chDeduz',{type:'bar',data:{labels:ks.map(lbl),datasets:[
+    {label:'Taxas de operadora',data:ks.map(k=>-gv(mo,k)),backgroundColor:'#C1503A',borderRadius:2},
+    {label:'Juros de carnê',data:ks.map(k=>gv(mj,k)),backgroundColor:'#B5872C',borderRadius:2}]},
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+brl2(Math.abs(c.parsed.y))}}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{maxTicksLimit:12}},y:{stacked:true,ticks:{callback:v=>brl(v)}}}}});
+
+  const mf=[...G(rs,r=>r.forma,'valor').entries()].sort((a,b)=>b[1]-a[1]);
+  const cf={0:'#0E7C6B',1:'#3B6B8C',2:'#16292E',3:'#B5872C'};
+  mk('chFormas',{type:'doughnut',data:{labels:mf.map(e=>D.formas[e[0]]),
+    datasets:[{data:mf.map(e=>e[1]),backgroundColor:mf.map(e=>cf[e[0]]),borderColor:'#fff',borderWidth:2}]},
+    options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right'},
+    tooltip:{callbacks:{label:c=>' '+brl(c.parsed)+' ('+pct(c.parsed/fat)+')'}}}}});
+
+  const po=D.operadoras.map((o,i)=>{const w=rs.filter(r=>r.oper===i);if(!w.length)return null;
+    const f=S(w,'valor'),c=S(w,'custoOper'),t=D.taxas[o];
+    const cont=(S(w.filter(r=>r.forma===1),'valor')*t.deb+S(w.filter(r=>r.forma===2),'valor')*t.cred)/f;
+    return{o,f,c,q:w.length,ef:c/f,cont,dv:c/f-cont,pz:t.prazo,fl:f*(D.prazo[o]||1)/365*.12}})
+    .filter(Boolean).sort((a,b)=>b.f-a.f);
+  document.getElementById('tbOper').innerHTML=
+   `<thead><tr><th>Operadora</th><th>Transações</th><th>Receita</th><th>Custo taxas</th><th>Taxa efetiva</th><th>Contratada</th><th>Desvio</th><th>Repasse</th><th>Custo do float*</th></tr></thead><tbody>`+
+   po.map(x=>`<tr><td>${x.o}</td><td>${x.q}</td><td>${brl(x.f)}</td><td>${brl2(x.c)}</td>
+   <td>${pct(x.ef,2)}</td><td class="nt">${pct(x.cont,2)}</td>
+   <td><span class="chip ${Math.abs(x.dv)>.0005?'w':''}">${(x.dv>=0?'+':'')+pct(x.dv,2)}</span></td>
+   <td>${x.pz}</td><td>${brl2(x.fl)}</td></tr>`).join('')+
+   `<tr><td colspan="9" style="font-family:Archivo;font-size:11px;color:var(--slate);text-align:left;border:0;padding-top:10px">
+   * Custo de oportunidade do dinheiro em trânsito até o repasse, a 12% a.a.</td></tr></tbody>`;
+
+  const rng=document.getElementById('rngTaxa'),lb=document.getElementById('lblTaxa');
+  const sim=()=>{const red=+rng.value/100;lb.textContent='-'+num(red,2)+' p.p.';
+    const anosL=fAno===0?ANOS:[fAno];
+    const base=anosL.map(a=>{const w=filt(0,fDent,fCat).filter(r=>r.ano===a&&(r.forma===1||r.forma===2));return S(w,'custoOper')});
+    const novo=anosL.map((a,i)=>{const w=filt(0,fDent,fCat).filter(r=>r.ano===a&&(r.forma===1||r.forma===2));
+      return Math.max(0,S(w,'custoOper')-S(w,'valor')*red/100)});
+    mk('chSim',{type:'bar',data:{labels:anosL,datasets:[
+      {label:'Custo atual',data:base,backgroundColor:'#C1503A',borderRadius:3},
+      {label:'Custo renegociado',data:novo,backgroundColor:'#0E7C6B',borderRadius:3}]},
+      options:{maintainAspectRatio:false,plugins:{
+      title:{display:true,text:'Economia estimada: '+brl(base.reduce((a,b)=>a+b,0)-novo.reduce((a,b)=>a+b,0))+' no período',
+        font:{family:"'Fraunces',serif",size:14,weight:'600'},color:'#0E7C6B',padding:{bottom:12}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+brl(c.parsed.y)}}},
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>brl(v)}}}}});};
+  rng.oninput=sim;sim();
+}
+
+render();
+</script>
+</body>
+</html>
