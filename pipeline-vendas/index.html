@@ -63,8 +63,10 @@ kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line2);border-
 .who{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);font-weight:600}
 .ibtn{position:relative;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--muted)}
 .ibtn:hover{color:var(--text);border-color:var(--faint)}
+.ibtn.on{color:var(--verde);border-color:rgba(63,182,139,.6);background:rgba(63,182,139,.1)}
 .ibtn.sm{width:28px;height:28px;border-radius:7px}
 .ibtn.sm .ic{width:13px;height:13px}
+.badge[hidden]{display:none}
 .badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--vermelho);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;display:grid;place-items:center;border:2px solid var(--ink)}
 
 .ledger{margin-top:16px;border:1px solid var(--line);border-bottom:none;border-radius:11px 11px 0 0;background:var(--panel2);overflow-x:auto}
@@ -468,12 +470,13 @@ body.dragmode *{cursor:grabbing!important}
     <a class="brand" href="https://www.dashboardsforall.com.br/" title="Voltar ao site da DFA">
       <div class="bmark">DFA</div>
       <div><h1>Pipeline de Vendas · CRM</h1>
-      <small>Dashboards For All · demonstração interativa · dados fictícios</small></div>
+      <small id="subt">Dashboards For All · demonstração interativa · dados fictícios</small></div>
     </a>
     <div class="hact">
       <button class="hsearch" data-act="search" aria-label="Buscar (Ctrl+K)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar no CRM…</span><kbd>Ctrl K</kbd></button>
       <label class="who" for="who">Visão
         <select class="in" id="who" data-ch="who"></select></label>
+      <button class="ibtn" id="privBtn" data-act="priv" title="Minha base privada (acesso com senha)" aria-label="Minha base privada"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
       <button class="ibtn" data-act="features" title="Recursos do CRM" aria-label="Recursos do CRM"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
       <button class="ibtn" id="bellBtn" data-act="bell" title="Alertas e notificações" aria-label="Alertas e notificações"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge" id="bellN" hidden></span></button>
       <button class="btn pri" data-act="newDeal"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Negócio</button>
@@ -487,8 +490,8 @@ body.dragmode *{cursor:grabbing!important}
 <main id="main"></main>
 
 <footer><div class="fi">
-  <span>DFA · Dashboards For All — demonstração com dados fictícios · as alterações ficam salvas apenas neste navegador</span>
-  <span>Empresa-exemplo: Nexo Software (fictícia) · <button data-act="resetDemo">restaurar dados de demonstração</button></span>
+  <span id="footL">DFA · Dashboards For All — demonstração com dados fictícios · as alterações ficam salvas apenas neste navegador</span>
+  <span id="footR">Empresa-exemplo: Nexo Software (fictícia) · <button data-act="resetDemo">restaurar dados de demonstração</button></span>
 </div></footer>
 
 <div class="scrim" id="scrim" data-act="closeDrawer"></div>
@@ -595,6 +598,7 @@ const IC={
   arrowR:'<path d="M5 12h14M12 5l7 7-7 7"/>',
   save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/>',
   pinned:'<path d="M12 17v5M9 10.8V4h6v6.8l3 3.2H6z"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   percent:'<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'
 };
 const ic=(n,c)=>'<svg class="ic'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(IC[n]||'')+'</svg>';
@@ -816,7 +820,7 @@ Agência Farol Criativo|Serviços|Pequena|Curitiba|PR`.split('\n').map((l,i)=>{c
       source:wp(sources,srcW),value:pick([18000,24000,35000,48000,65000,90000,120000]),ownerId:i%4===1?null:wp(users.map(u=>u.id),[25,23,21,17,14]),
       created:addD(TODAY,-ri(0,20)),size:wp(['Pequena','Média','Grande'],[50,35,15]),seg:pick(SEGS),eng:ri(0,40),status:'ativo',note:pick(LNOTE)};});
 
-  return {v:1,genAt:TODAY,users,pipes,sources,lostReasons,tags,products,orgs:ORGS,people,deals,acts,notes,leads,log,notifs:[
+  return {v:1,demo:true,genAt:TODAY,users,pipes,sources,lostReasons,tags,products,orgs:ORGS,people,deals,acts,notes,leads,log,notifs:[
       {id:'nt1',ts:addD(TODAY,-1)+'T16:40',text:'Negociação acima de R$ 120 mil requer acompanhamento do gestor',dealId:(deals.find(d=>d.status==='open'&&d.stageId==='s5'&&d.value>=120000)||{}).id||null,read:false}],
     autos:[
       {id:'a1',name:'Follow-up automático de proposta',on:true,trigger:'stage',stageId:'s4',action:'activity',actType:'call',subject:'Follow-up da proposta enviada',days:3,runs:41},
@@ -848,7 +852,8 @@ Agência Farol Criativo|Serviços|Pequena|Curitiba|PR`.split('\n').map((l,i)=>{c
 const KEY='dfa-pipeline-crm-v1', UKEY='dfa-pipeline-crm-ui-v1';
 function loadState(){try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.v===1&&Array.isArray(o.deals))return o;}}catch(e){}return null;}
 let LAST_JSON=null; /* última serialização salva — reaproveitada pelo “desfazer” */
-function save(){LAST_JSON=JSON.stringify(S);try{localStorage.setItem(KEY,LAST_JSON);}catch(e){}}
+let NOPERSIST=false; /* base privada aberta “só nesta aba”: não grava no navegador */
+function save(){LAST_JSON=JSON.stringify(S);if(NOPERSIST)return;try{localStorage.setItem(KEY,LAST_JSON);}catch(e){}}
 const UDEF={tab:'pipeline',pipe:'p1',view:'kanban',owner:'',f:{q:'',tag:'',close:'',src:'',status:'open',rot:false,noact:false},
   sort:{k:'value',d:-1},act:{view:'list',when:'pend',types:[],q:''},calYM:CUR_YM,ct:'people',ctq:'',lq:'',lsrc:'',lst:'ativo',
   rp:{days:90,pipe:'p1'},fc:{pipe:'p1'}};
@@ -1030,7 +1035,7 @@ function killCharts(){Object.keys(CH).forEach(k=>{try{CH[k].destroy();}catch(e){
 function commit(){S.touched=true;save();render();}
 function render(){
   buildIx();
-  renderWho();renderLedger();renderTabs();renderBellBadge();
+  renderMode();renderWho();renderLedger();renderTabs();renderBellBadge();
   const sx=$('#board')?$('#board').scrollLeft:0;
   killCharts();
   (VIEWS[U.tab]||VIEWS.pipeline)();
@@ -1049,6 +1054,14 @@ function ownerOpts(v,all){return (all?'<option value="">'+all+'</option>':'')+S.
 function opts(list,v,first){return (first!=null?'<option value="">'+esc(first)+'</option>':'')+list.map(o=>{const a=Array.isArray(o)?o:[o,o];return '<option value="'+esc(a[0])+'"'+sel(String(a[0])===String(v))+'>'+esc(a[1])+'</option>';}).join('');}
 const ownOK=x=>!U.owner||x.ownerId===U.owner;
 
+const isDemo=()=>S.demo!==false;
+function renderMode(){ /* textos de demonstração × base própria importada */
+  const demo=isDemo();
+  $('#subt').textContent=demo?'Dashboards For All · demonstração interativa · dados fictícios':'Base privada · '+S.cfg.company;
+  $('#privBtn').classList.toggle('on',!demo);
+  $('#footL').textContent=demo?'DFA · Dashboards For All — demonstração com dados fictícios · as alterações ficam salvas apenas neste navegador':(NOPERSIST?'Base privada aberta só nesta aba — nada fica gravado neste navegador':'Base privada gravada neste navegador')+' · para atualizar a versão do site, use o cadeado → Baixar base-privada.json';
+  $('#footR').innerHTML=demo?'Empresa-exemplo: Nexo Software (fictícia) · <button data-act="resetDemo">restaurar dados de demonstração</button>':'<button data-act="priv">gerenciar base privada</button> · <button data-act="backup">baixar backup (JSON)</button>';
+}
 function renderWho(){
   const el=$('#who');el.innerHTML=ownerOpts(U.owner,'Equipe inteira');
 }
@@ -1166,7 +1179,7 @@ function boardHTML(deals){
       <header class="colh"><div class="colt"><span>${esc(s.name)}</span><span class="cnt">${ds.length}</span></div>
         <div class="cols">${fRs(totals[i])} <span class="faint">· pond. ${fRs(w)}</span></div>
         <div class="colbar"><i style="width:${(totals[i]/mx*100).toFixed(1)}%"></i></div>
-        <div class="colp">${s.prob}% de probabilidade · parado após ${s.rot}d</div></header>
+        <div class="colp">${s.prob}% de probabilidade · ${s.rot?'parado após '+s.rot+'d':'sem alerta de parado'}</div></header>
       <div class="colb">${ds.map(cardHTML).join('')}
         <button class="qadd" data-act="newDeal" data-stage="${s.id}">${ic('plus')}Negócio</button></div></section>`;}).join('')+'</div>';
 }
@@ -1174,10 +1187,12 @@ function cardHTML(d){
   const o=IX.org[d.orgId],pe=IX.person[d.personId],u=IX.user[d.ownerId];
   const as=d.status==='open'?actState(d):null,na=nextAct(d),rot=rotting(d),h=health(d);
   const over=d.status==='open'&&d.close&&d.close<TODAY;
+  /* empresa e contato só aparecem quando não repetem o título */
+  const sub=[o&&!d.title.includes(o.name)?o.name:(o?'':'Sem empresa'),pe&&!(o&&pe.name.includes(o.name))?pe.name:''].filter(Boolean).join(' · ');
   const atitle=as==='none'?'Sem próxima atividade — agende uma':na?(ACT_T[na.type].n+': '+na.subject+' ('+rel(na.due)+')'):'';
   return `<article class="dcard${rot?' rot':''}${d.status!=='open'?' '+d.status:''}" data-deal="${d.id}" tabindex="0" aria-label="${esc(d.title)}">
     <div class="dtop"><div class="dt">${esc(d.title)}</div>${h?`<span class="hs h${h.lvl}" title="Score de saúde do negócio: ${h.v}/100">${h.v}</span>`:''}</div>
-    <div class="dsub">${esc(o?o.name:'Sem empresa')}${pe?' · '+esc(pe.name):''}</div>
+    ${sub?'<div class="dsub">'+esc(sub)+'</div>':''}
     ${d.tags.length?'<div class="dtags">'+d.tags.map(tagPill).join('')+'</div>':''}
     <div class="dmeta"><span class="dval">${fR(d.value)}</span><span class="dicons">
       ${needsApproval(d)?'<span class="pct" title="Desconto acima da política — aguarda aprovação">%</span>':''}
@@ -1521,7 +1536,7 @@ function drMsg(d,pe){
     <div class="mrow"><button class="btn pri" data-act="sendMsg">${ic('send')}${ch==='email'?'Abrir no app de e-mail':'Abrir no WhatsApp'}</button>
       <button class="btn" data-act="logMsg">${ic('check')}Só registrar envio</button>
       <span class="faint" style="font-size:11.5px">Campos de mesclagem: {{contato}} {{empresa}} {{negocio}} {{valor}} {{vendedor}} {{validade}}</span></div>
-    <div class="preview">${ic('alert')} Demonstração: os contatos são fictícios. O envio é registrado no histórico do negócio como atividade concluída — como no rastreamento de e-mails dos CRMs de mercado.</div></div>`;
+    <div class="preview">${ic('alert')} ${isDemo()?'Demonstração: os contatos são fictícios. ':''}O envio é registrado no histórico do negócio como atividade concluída — como no rastreamento de e-mails dos CRMs de mercado.</div></div>`;
 }
 function histText(h){
   const sn=id=>{const x=IX.stage[id];return x?x.s.name:'(etapa removida)';};
@@ -1583,7 +1598,7 @@ td{padding:9px 8px;border-bottom:1px solid #EEF1F4}.r{text-align:right}.tot td{f
 .sig{display:flex;gap:40px;margin-top:56px}.sig div{flex:1;border-top:1px solid #1A2633;padding-top:6px;font-size:12px;color:#5B6B7B}.bt{position:fixed;top:14px;right:14px;background:#3FB68B;border:none;color:#07110C;font-weight:700;padding:10px 16px;border-radius:8px;cursor:pointer}
 @media print{body{background:#fff}.pg{box-shadow:none;margin:0;padding:24px}.bt{display:none}}</style></head><body>
 <button class="bt" onclick="print()">Imprimir / salvar PDF</button><div class="pg">
-<div class="hd"><div><div class="lg">${esc(S.cfg.company)}<span>.</span></div><div class="mut">Empresa fictícia · demonstração DFA</div></div><div class="mut" style="text-align:right">Proposta <b>${num}</b><br>Emitida em ${fD(TODAY)}<br>Válida até ${fD(addD(TODAY,+S.cfg.validity||15))}</div></div>
+<div class="hd"><div><div class="lg">${esc(S.cfg.company)}<span>.</span></div><div class="mut">${isDemo()?'Empresa fictícia · demonstração DFA':''}</div></div><div class="mut" style="text-align:right">Proposta <b>${num}</b><br>Emitida em ${fD(TODAY)}<br>Válida até ${fD(addD(TODAY,+S.cfg.validity||15))}</div></div>
 <h1>Proposta comercial</h1><div class="mut">${esc(d.title)}</div>
 <div class="box"><b>Cliente:</b> ${esc(o?o.name:'—')}${o&&o.city?' — '+esc(o.city)+'/'+esc(o.uf):''}<br><b>A/C:</b> ${esc(pe?pe.name:'—')}${pe&&pe.role?' ('+esc(pe.role)+')':''}<br><b>Consultor(a):</b> ${esc(u?u.name:'—')}</div>
 <table><thead><tr><th>Item</th><th class="r">Qtd</th><th class="r">Preço unit.</th><th class="r">Desc.</th><th class="r">Vigência</th><th class="r">Total</th></tr></thead><tbody>
@@ -1943,7 +1958,7 @@ VIEWS.settings=function(){
    ===================================================================== */
 let MOD=null;
 function modal(html,cls){const m=$('#modal');m.innerHTML='<div class="mbox '+(cls||'')+'" role="dialog" aria-modal="true">'+html+'</div>';m.classList.add('on');
-  setTimeout(()=>{const f=$('#modal input:not([type=hidden]):not([type=checkbox]):not([type=radio]),#modal select,#modal textarea');if(f)f.focus();},30);}
+  setTimeout(()=>{const f=$('#modal input:not([type=hidden]):not([type=checkbox]):not([type=radio]),#modal select,#modal textarea');if(f&&!m.contains(document.activeElement))f.focus();},30);}
 function closeModal(){$('#modal').classList.remove('on');$('#modal').innerHTML='';MOD=null;}
 function fieldHTML(f){
   const id='f_'+f.k,v=f.value==null?'':f.value;let inp;
@@ -2348,9 +2363,10 @@ const A={
   importCsv:()=>pickFile('.csv,text/csv',importCSV),
   backup:()=>dl('crm-backup-'+TODAY+'.json',JSON.stringify(S,null,1),'application/json'),
   restore:()=>pickFile('.json,application/json',txt=>{let o;try{o=JSON.parse(txt);}catch(e){toast('Arquivo inválido',{icon:'alert'});return;}
+    if(isEnc(o)){toast('Este arquivo está criptografado: abra pelo cadeado (Minha base privada)',{icon:'lock'});return;}
     if(!o||!Array.isArray(o.deals)||!Array.isArray(o.pipes)||!Array.isArray(o.users)){toast('O arquivo não parece um backup deste CRM',{icon:'alert'});return;}
     snap();S=Object.assign(genDemo(),o,{v:1});commit();toast('Backup restaurado: '+S.deals.length+' negócios',{undo:true});}),
-  resetDemo:()=>confirmDlg('Restaurar os dados de demonstração? Todas as alterações feitas neste navegador serão substituídas.',()=>{snap();S=genDemo();U=JSON.parse(JSON.stringify(UDEF));SEL.clear();closeDrawer();save();render();toast('Dados de demonstração restaurados',{undo:true,icon:'refresh'});},'Restaurar'),
+  resetDemo:()=>confirmDlg(isDemo()?'Restaurar os dados de demonstração? Todas as alterações feitas neste navegador serão substituídas.':'Voltar à demonstração apaga deste navegador a sua base própria ('+S.deals.length+' negócios) e carrega os dados fictícios. Baixe um backup antes, se quiser mantê-la.',()=>{snap();S=genDemo();U=JSON.parse(JSON.stringify(UDEF));SEL.clear();closeDrawer();save();render();toast('Dados de demonstração restaurados',{undo:true,icon:'refresh'});},'Restaurar'),
   closeModal:()=>closeModal(),
   confirmOk:()=>{const f=MOD&&MOD.onOk;closeModal();if(f)f();},
   srOpen:t=>{const ty=t.dataset.t,id=t.dataset.id;closeModal();
@@ -2538,6 +2554,103 @@ if(window.Chart){
   const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))U.tab=h;
   render();
 })();
+
+/* =====================================================================
+   BASE PRIVADA — dados reais publicados criptografados ao lado da página
+   (base-privada.json, AES-256-GCM com chave derivada da senha por
+   PBKDF2-SHA256). A senha nunca sai do navegador; sem ela o arquivo é
+   ilegível. Visitantes continuam vendo apenas a demonstração.
+   ===================================================================== */
+const PRIV_FILE='base-privada.json', PRIV_ITER=600000;
+const te=new TextEncoder(), td=new TextDecoder();
+function b64e(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function b64d(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+async function privKey(pw,salt,iter){
+  const base=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function privEncrypt(obj,pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await privKey(pw,salt,PRIV_ITER),te.encode(JSON.stringify(obj)));
+  return {app:'dfa-pipeline-crm',v:1,alg:'AES-256-GCM',kdf:'PBKDF2-SHA256',iter:PRIV_ITER,salt:b64e(salt),iv:b64e(iv),data:b64e(new Uint8Array(ct)),savedAt:nowTs()};
+}
+async function privDecrypt(env,pw){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(env.iv)},await privKey(pw,b64d(env.salt),+env.iter||PRIV_ITER),b64d(env.data));
+  return JSON.parse(td.decode(pt));
+}
+const isEnc=o=>!!(o&&o.app==='dfa-pipeline-crm'&&o.data&&o.salt&&o.iv);
+
+function privModal(force){
+  MOD={priv:true};
+  const open=isDemo()||force;
+  const head='<div class="mh"><h3>'+ic('lock')+' Minha base privada</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div>';
+  const body=open?`<div class="mb">
+    <p style="font-size:13px;line-height:1.6">A sua base fica publicada neste site <b>criptografada (AES-256)</b>. Sem a senha o arquivo é ilegível, e a senha nunca sai deste navegador. Quem visita o site vê só a demonstração.</p>
+    <form data-form="privOpen" class="mf" style="padding:14px 0 0">
+      <div class="fld"><label for="pw">Senha</label><input class="in" id="pw" name="pw" type="password" autocomplete="current-password" required></div>
+      <div class="fld"><label class="ck"><input type="checkbox" name="remember" checked> Manter aberta neste navegador (desmarque em computador compartilhado)</label></div>
+      ${force&&!isDemo()?'<div class="warnbox">Isto substitui a base aberta neste navegador pela versão publicada no site. Alterações que você não salvou no site serão perdidas.</div>':''}
+      <div id="privMsg" style="flex:1 1 100%"></div>
+      <div class="mfoot"><button type="button" class="btn ghost l" data-act="privFile">${ic('upload')}Abrir de um arquivo…</button><button class="btn pri" type="submit" id="privGo">${ic('lock')}Abrir minha base</button></div>
+    </form></div>`
+  :`<div class="mb">
+    <p style="font-size:13px">Base privada aberta: <b>${S.deals.length} negócios</b> · ${NOPERSIST?'só nesta aba (nada fica gravado no navegador)':'gravada neste navegador'}.</p>
+    <p class="faint" style="font-size:12px;margin-top:6px;line-height:1.6">As alterações ficam neste navegador. Para levá-las ao site (e abrir nos outros dispositivos), gere o arquivo criptografado abaixo e envie <code class="mono">base-privada.json</code> para a pasta <code class="mono">pipeline-vendas/</code> do repositório, substituindo o atual. Dá para trocar a senha aqui também.</p>
+    <form data-form="privSave" class="mf" style="padding:14px 0 0">
+      <div class="fld half"><label for="pw1">Senha</label><input class="in" id="pw1" name="pw" type="password" autocomplete="new-password" minlength="10" required></div>
+      <div class="fld half"><label for="pw2">Repita a senha</label><input class="in" id="pw2" name="pw2" type="password" autocomplete="new-password" required></div>
+      <div id="privMsg" style="flex:1 1 100%"></div>
+      <div class="mfoot"><button type="button" class="btn dan l" data-act="privLogout">${ic('x')}Sair e apagar deste navegador</button>
+        <button type="button" class="btn" data-act="privReload">${ic('refresh')}Recarregar a versão do site</button>
+        <button class="btn pri" type="submit" id="privGo">${ic('download')}Baixar base-privada.json</button></div>
+    </form></div>`;
+  modal(head+body);
+}
+function privMsg(t,ok){const el=$('#privMsg');if(el)el.innerHTML='<div class="'+(ok?'alertln ok':'warnbox')+'" style="margin:0">'+esc(t)+'</div>';}
+function privBusy(on,label){const b=$('#privGo');if(b){b.disabled=on;if(label)b.lastChild.textContent=label;}}
+async function privOpen(pw,remember,fileText){
+  let env;
+  privBusy(true,'Abrindo…');
+  try{
+    if(fileText!=null)env=JSON.parse(fileText);
+    else{const r=await fetch(PRIV_FILE+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('http '+r.status);env=await r.json();}
+  }catch(e){privBusy(false,'Abrir minha base');privMsg(fileText!=null?'Arquivo inválido.':'Não encontrei a base criptografada neste site ('+PRIV_FILE+'). Use “Abrir de um arquivo…”.');return;}
+  if(!isEnc(env)){privBusy(false,'Abrir minha base');privMsg('Este arquivo não é uma base criptografada do CRM. Para backups comuns, use Configurações → Restaurar backup.');return;}
+  let o;
+  try{o=await privDecrypt(env,pw);}catch(e){privBusy(false,'Abrir minha base');privMsg('Senha incorreta.');const p=$('#pw');if(p){p.value='';p.focus();}return;}
+  if(!o||!Array.isArray(o.deals)||!Array.isArray(o.pipes)){privBusy(false,'Abrir minha base');privMsg('O conteúdo descriptografado não é uma base válida.');return;}
+  snap();
+  NOPERSIST=!remember;
+  if(NOPERSIST){try{localStorage.removeItem(KEY);}catch(e){}}
+  S=Object.assign(genDemo(),o,{v:1,demo:false,touched:true});
+  U=JSON.parse(JSON.stringify(UDEF));U.pipe=S.pipes[0].id;U.rp.pipe=S.pipes[0].id;U.fc.pipe='';
+  SEL.clear();closeDrawer();closeModal();save();render();window.scrollTo(0,0);
+  toast('Base privada aberta: '+S.deals.length+' negócios'+(env.savedAt?' · versão de '+fD(env.savedAt)+' '+env.savedAt.slice(11,16):''),{icon:'lock'});
+}
+async function privSave(pw,pw2){
+  if(pw.length<10)return privMsg('Use uma senha com pelo menos 10 caracteres.');
+  if(pw!==pw2)return privMsg('As senhas não conferem.');
+  privBusy(true,'Criptografando…');
+  const env=await privEncrypt(S,pw);
+  dl(PRIV_FILE,JSON.stringify(env),'application/json');
+  privBusy(false,'Baixar base-privada.json');
+  privMsg('Arquivo gerado. Envie base-privada.json para a pasta pipeline-vendas/ do repositório (Add files via upload), substituindo o atual.',true);
+}
+Object.assign(A,{
+  priv:()=>privModal(false),
+  privReload:()=>privModal(true),
+  privFile:()=>{const pw=($('#pw')||{}).value||'';if(!pw){privMsg('Digite a senha antes de escolher o arquivo.');return;}
+    const rem=!!($('#modal [name=remember]')||{}).checked;pickFile('.json,application/json',txt=>privOpen(pw,rem,txt));},
+  privLogout:()=>confirmDlg('Sair da base privada? Ela será apagada deste navegador (a versão criptografada publicada no site continua lá). Alterações não enviadas ao site serão perdidas.',()=>{
+    NOPERSIST=false;try{localStorage.removeItem(KEY);}catch(e){}
+    S=genDemo();U=JSON.parse(JSON.stringify(UDEF));UNDO=null;SEL.clear();closeDrawer();render();window.scrollTo(0,0);toast('Você saiu da base privada',{icon:'lock'});},'Sair e apagar')
+});
+document.addEventListener('submit',e=>{
+  const k=e.target.dataset&&e.target.dataset.form;if(k!=='privOpen'&&k!=='privSave')return;
+  const f=e.target;
+  if(k==='privOpen')privOpen(f.elements.pw.value,f.elements.remember.checked,null);
+  else privSave(f.elements.pw.value,f.elements.pw2.value);
+});
 </script>
 </body>
 </html>
