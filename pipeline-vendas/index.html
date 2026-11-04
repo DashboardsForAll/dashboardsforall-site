@@ -728,7 +728,7 @@ Laboratório Vida Plena|Saúde|Média|Manaus|AM
 Atacado Mercosul Norte|Distribuição|Grande|Chapecó|SC
 Tecnologia Brisa Digital|Tecnologia|Pequena|Recife|PE
 Moda Ateliê Bordô|Varejo|Pequena|São Paulo|SP
-Agência Farol Criativo|Serviços|Pequena|Curitiba|PR`.split('\n').map((l,i)=>{const a=l.split('|');return {id:'o'+(i+1),name:a[0],seg:a[1],size:a[2],city:a[3],uf:a[4]};});
+Agência Farol Criativo|Serviços|Pequena|Curitiba|PR`.split('\n').map((l,i)=>{const a=l.split('|');return {id:'o'+(i+1),name:a[0],tipo:a[1],seg:a[1],size:a[2],city:a[3],uf:a[4]};});
   const DDD={SP:11,SC:47,MG:31,PR:41,GO:62,PE:81,BA:71,MT:65,CE:85,RS:51,RJ:21,DF:61,ES:27,RN:84,MA:98,PA:91,MS:67,PI:86,PB:83,AM:92};
   const phone=uf=>'('+(DDD[uf]||11)+') 9'+ri(1000,9999)+'-'+ri(1000,9999);
   const FIRST=['Mariana','Rafael','Juliana','Thiago','Patrícia','Gustavo','Fernanda','Lucas','Camila','Rodrigo','Beatriz','André','Larissa','Felipe','Renata','Marcelo','Aline','Vinícius','Débora','Leonardo','Tatiane','Henrique','Priscila','Fábio','Natália','Ricardo','Vanessa','Paulo','Simone','Eduardo','Cristiane','Rogério','Letícia','Daniel','Sabrina','Márcio'];
@@ -874,8 +874,8 @@ function loadState(){try{const raw=localStorage.getItem(KEY);if(raw){const o=JSO
 let LAST_JSON=null; /* última serialização salva — reaproveitada pelo “desfazer” */
 let NOPERSIST=false; /* base privada aberta “só nesta aba”: não grava no navegador */
 function save(){LAST_JSON=JSON.stringify(S);if(NOPERSIST)return;try{localStorage.setItem(KEY,LAST_JSON);}catch(e){}}
-const UDEF={tab:'pipeline',pipe:'p1',view:'kanban',owner:'',f:{q:'',tag:'',close:'',src:'',status:'open',rot:false,noact:false},
-  sort:{k:'value',d:-1},act:{view:'list',when:'pend',types:[],q:''},calYM:CUR_YM,ct:'people',ctq:'',lq:'',lsrc:'',lst:'ativo',
+const UDEF={tab:'pipeline',pipe:'p1',view:'kanban',owner:'',f:{q:'',tag:'',otype:'',close:'',src:'',status:'open',rot:false,noact:false},
+  sort:{k:'value',d:-1},act:{view:'list',when:'pend',types:[],q:''},calYM:CUR_YM,ct:'people',ctq:'',ctOtype:'',lq:'',lsrc:'',lst:'ativo',
   rp:{days:90,pipe:'p1'},fc:{pipe:'p1'}};
 function loadUI(){let u={};try{u=JSON.parse(localStorage.getItem(UKEY)||'{}')||{};}catch(e){}
   const o=JSON.parse(JSON.stringify(UDEF));Object.keys(u).forEach(k=>{if(u[k]&&typeof u[k]==='object'&&!Array.isArray(u[k])&&o[k]&&typeof o[k]==='object')Object.assign(o[k],u[k]);else o[k]=u[k];});
@@ -1056,6 +1056,7 @@ function mkChart(id,cfg){const el=document.getElementById(id);if(!el||!window.Ch
 function killCharts(){Object.keys(CH).forEach(k=>{try{CH[k].destroy();}catch(e){}delete CH[k];});}
 function commit(){S.touched=true;save();render();afterCommit();}
 function render(){
+  if(!Array.isArray(S.orgTypes))S.orgTypes=[...new Set(S.orgs.map(o=>o.tipo).filter(Boolean))].sort();
   buildIx();
   renderMode();renderWho();renderLedger();renderTabs();renderBellBadge();
   const sx=$('#board')?$('#board').scrollLeft:0;
@@ -1075,6 +1076,11 @@ function statusBadge(d){return d.status==='won'?'<span class="bdg bA">Ganho</spa
 function ownerOpts(v,all){return (all?'<option value="">'+all+'</option>':'')+S.users.map(u=>'<option value="'+u.id+'"'+sel(u.id===v)+'>'+esc(u.name)+'</option>').join('');}
 function opts(list,v,first){return (first!=null?'<option value="">'+esc(first)+'</option>':'')+list.map(o=>{const a=Array.isArray(o)?o:[o,o];return '<option value="'+esc(a[0])+'"'+sel(String(a[0])===String(v))+'>'+esc(a[1])+'</option>';}).join('');}
 const ownOK=x=>!U.owner||x.ownerId===U.owner;
+/* tipos de empresa: lista configurável + tipos já usados nas empresas */
+function orgTypes(){return [...new Set((S.orgTypes||[]).concat(S.orgs.map(o=>o.tipo).filter(Boolean)))];}
+const orgTipo=d=>((IX.org[d.orgId]||{}).tipo||'');
+function addOrgType(t){t=String(t||'').trim();if(t&&!(S.orgTypes||[]).includes(t))(S.orgTypes=S.orgTypes||[]).push(t);return t;}
+const fieldFor=(f,d)=>!f.pipes||!f.pipes.length||f.pipes.includes(d.pipeId);
 
 const isDemo=()=>S.demo!==false;
 function renderMode(){ /* textos de demonstração × base própria importada */
@@ -1145,6 +1151,7 @@ function filtDeals(o){
     if(status!=='all'&&d.status!==status)return false;
     if(f.tag&&!d.tags.includes(f.tag))return false;
     if(f.src&&d.source!==f.src)return false;
+    if(f.otype&&(f.otype==='__none'?orgTipo(d)!=='':orgTipo(d)!==f.otype))return false;
     if(f.close==='month'&&!(d.close&&d.close.slice(0,7)===CUR_YM))return false;
     if(f.close==='next'&&!(d.close&&d.close.slice(0,7)===nm))return false;
     if(f.close==='over'&&!(d.status==='open'&&d.close&&d.close<TODAY))return false;
@@ -1156,7 +1163,7 @@ function filtDeals(o){
     return true;
   });
 }
-function activeFilters(){const f=U.f;return !!(f.q||f.tag||f.src||f.close||f.rot||f.noact||(U.view==='list'&&f.status!=='open'));}
+function activeFilters(){const f=U.f;return !!(f.q||f.tag||f.otype||f.src||f.close||f.rot||f.noact||(U.view==='list'&&f.status!=='open'));}
 
 VIEWS.pipeline=function(){
   const f=U.f;
@@ -1170,6 +1177,7 @@ VIEWS.pipeline=function(){
     <div class="srch">${ic('search')}<input class="in" id="fq" placeholder="Filtrar negócios, empresas, contatos" value="${esc(f.q)}" data-in="fq" aria-label="Filtrar"></div>
     <select class="in" data-ch="ftag" aria-label="Etiqueta">${opts(S.tags.map(t=>t.name),f.tag,'Etiqueta: todas')}</select>
     <select class="in" data-ch="fclose" aria-label="Previsão">${opts([['month','Fecha este mês'],['next','Fecha mês que vem'],['over','Previsão vencida'],['none','Sem previsão']],f.close,'Previsão: todas')}</select>
+    <select class="in" data-ch="fotype" aria-label="Tipo de empresa">${opts(orgTypes().map(t=>[t,t]).concat([['__none','Sem tipo definido']]),f.otype,'Tipo de empresa: todos')}</select>
     <select class="in" data-ch="fsrc" aria-label="Origem">${opts(S.sources,f.src,'Origem: todas')}</select>
     ${U.view==='list'?`<select class="in" data-ch="fstatus" aria-label="Status">${opts([['open','Abertos'],['won','Ganhos'],['lost','Perdidos'],['all','Todos os status']],f.status)}</select>`:''}
     <button class="chip${f.rot?' on':''}" data-act="ftoggle" data-k="rot">${ic('clock')}Parados</button>
@@ -1190,7 +1198,9 @@ function renderPipeBody(){
     <span>Ticket médio <b>${fR(deals.length?tot/deals.length:0)}</b></span>${U.view==='kanban'?'<span class="faint">Arraste os cartões entre etapas · solte em Ganho/Perdido no rodapé</span>':''}`;
   $('#pbody').innerHTML=U.view==='kanban'?boardHTML(deals):listHTML(deals);
 }
+let CARD_TIPO=false; /* mostra o tipo de empresa no cartão quando o funil mistura tipos */
 function boardHTML(deals){
+  CARD_TIPO=new Set(deals.map(orgTipo)).size>1;
   const p=IX.pipe[U.pipe]||S.pipes[0];
   const by={};p.stages.forEach(s=>by[s.id]=[]);
   deals.forEach(d=>(by[d.stageId]||by[p.stages[0].id]).push(d));
@@ -1211,7 +1221,7 @@ function cardHTML(d){
   const as=d.status==='open'?actState(d):null,na=nextAct(d),rot=rotting(d),h=health(d);
   const over=d.status==='open'&&d.close&&d.close<TODAY;
   /* empresa e contato só aparecem quando não repetem o título */
-  const sub=[o&&!d.title.includes(o.name)?o.name:(o?'':'Sem empresa'),pe&&!(o&&pe.name.includes(o.name))?pe.name:''].filter(Boolean).join(' · ');
+  const sub=[o&&!d.title.includes(o.name)?o.name:(o?'':'Sem empresa'),CARD_TIPO&&o&&o.tipo?o.tipo:'',pe&&!(o&&pe.name.includes(o.name))?pe.name:''].filter(Boolean).join(' · ');
   const atitle=as==='none'?'Sem próxima atividade — agende uma':na?(ACT_T[na.type].n+': '+na.subject+' ('+rel(na.due)+')'):'';
   return `<article class="dcard${rot?' rot':''}${d.status!=='open'?' '+d.status:''}" data-deal="${d.id}" tabindex="0" aria-label="${esc(d.title)}">
     <div class="dtop"><div class="dt">${esc(d.title)}</div>${h?`<span class="hs h${h.lvl}" title="Score de saúde do negócio: ${h.v}/100">${h.v}</span>`:''}</div>
@@ -1225,8 +1235,8 @@ function cardHTML(d){
       ${rot?`<span class="neg" title="Acima do limite de ${st(d).s.rot} dias da etapa">${ic('clock')} parado ${dInStage(d)}d</span>`:`<span class="faint">${dInStage(d)}d na etapa</span>`}</div>
   </article>`;
 }
-const LCOLS=[['title','Negócio'],['org','Empresa'],['value','Valor','r'],['stage','Etapa'],['prob','Prob.','r'],['owner','Responsável'],['close','Previsão'],['next','Próxima atividade'],['health','Score','r'],['source','Origem'],['created','Criado'],['status','Status']];
-function sortVal(d,k){switch(k){case 'org':return norm((IX.org[d.orgId]||{}).name);case 'stage':return st(d).i;case 'prob':return prob(d);
+const LCOLS=[['title','Negócio'],['org','Empresa'],['otype','Tipo de empresa'],['value','Valor','r'],['stage','Etapa'],['prob','Prob.','r'],['owner','Responsável'],['close','Previsão'],['next','Próxima atividade'],['health','Score','r'],['source','Origem'],['created','Criado'],['status','Status']];
+function sortVal(d,k){switch(k){case 'org':return norm((IX.org[d.orgId]||{}).name);case 'otype':return norm(orgTipo(d))||'~';case 'stage':return st(d).i;case 'prob':return prob(d);
   case 'owner':return norm((IX.user[d.ownerId]||{}).name);case 'next':{const a=nextAct(d);return a?a.due:'9999';}case 'health':{const h=health(d);return h?h.v:-1;}
   case 'title':return norm(d.title);case 'close':return d.close||'9999';default:return d[k]==null?'':d[k];}}
 function listHTML(deals){
@@ -1249,13 +1259,13 @@ function listHTML(deals){
     deals.map(d=>{const o=IX.org[d.orgId],u=IX.user[d.ownerId],na=d.status==='open'?nextAct(d):null,h=health(d),as=d.status==='open'?actState(d):'';
       return `<tr class="${SEL.has(d.id)?'sel':''}"><td><input type="checkbox" data-ch="selOne" data-id="${d.id}"${chk(SEL.has(d.id))} aria-label="Selecionar"></td>
       <td><button class="lnk" data-act="openDeal" data-id="${d.id}">${esc(d.title)}</button>${d.tags.length?'<div class="dtags">'+d.tags.map(tagPill).join('')+'</div>':''}</td>
-      <td>${esc(o?o.name:'—')}</td><td class="m r">${fR(d.value)}</td>
+      <td>${esc(o?o.name:'—')}</td><td class="nw">${esc((o&&o.tipo)||'—')}</td><td class="m r">${fR(d.value)}</td>
       <td class="nw">${esc(st(d).s.name)}${rotting(d)?' <span class="bdg bC">parado '+dInStage(d)+'d</span>':''}</td>
       <td class="m r">${fP(prob(d),0)}</td><td><span class="who-cell">${avatar(u)}${esc(u?u.name:'—')}</span></td>
       <td class="m ${d.status==='open'&&d.close&&d.close<TODAY?'neg':''}">${fD(d.close)}</td>
       <td class="nw">${na?`<span class="${as==='over'?'neg':as==='today'?'pos':''}">${ic(ACT_T[na.type].i)} ${esc(na.subject)}</span><span class="sub2 mono">${rel(na.due)}</span>`:d.status==='open'?'<span class="am">'+ic('alert')+' nenhuma</span>':'—'}</td>
       <td class="r">${h?'<span class="hs h'+h.lvl+'">'+h.v+'</span>':'—'}</td>
-      <td class="nw">${esc(d.source)}</td><td class="m">${fD(d.created)}</td><td>${statusBadge(d)}</td></tr>`;}).join('')||'<tr><td colspan="13"><div class="empty">Nenhum negócio corresponde aos filtros.</div></td></tr>'}
+      <td class="nw">${esc(d.source)}</td><td class="m">${fD(d.created)}</td><td>${statusBadge(d)}</td></tr>`;}).join('')||'<tr><td colspan="14"><div class="empty">Nenhum negócio corresponde aos filtros.</div></td></tr>'}
   </tbody></table></div>`;
 }
 
@@ -1435,7 +1445,7 @@ function renderDrawer(){
   const acts=(IX.actsByDeal[d.id]||[]),pend=acts.filter(a=>!a.done).sort(byDue),done=acts.filter(a=>a.done).sort((a,b)=>(b.doneAt+b.time).localeCompare(a.doneAt+a.time));
   const notes=(IX.notesByDeal[d.id]||[]).slice().sort((a,b)=>(b.pin-a.pin)||b.ts.localeCompare(a.ts));
   const tabs=[['acts','Atividades',pend.length,'cal'],['notes','Notas',notes.length,'edit'],['items','Produtos',(d.items||[]).length,'box'],['msg','E-mail & WhatsApp',null,'mail'],['hist','Histórico',null,'clock']];
-  const cfs=S.fields.map(f=>{const v=(d.cf||{})[f.id]||'';
+  const cfs=S.fields.filter(f=>fieldFor(f,d)).map(f=>{const v=(d.cf||{})[f.id]||'';
     const inp=f.type==='select'?`<select class="in sm" data-dch="cf.${f.id}">${opts(f.options||[],v,'—')}</select>`:
       `<input class="in sm${f.type==='number'?' mono':''}" type="${f.type==='number'?'number':f.type==='date'?'date':'text'}" value="${esc(v)}" data-dch="cf.${f.id}">`;
     return `<div class="kv"><label>${esc(f.name)}</label>${inp}</div>`;}).join('');
@@ -1485,7 +1495,8 @@ function renderDrawer(){
           ${pe.phone?`<div class="row">${ic('phone')}<span class="mono">${esc(pe.phone)}</span></div>`:''}</div>`:'<div class="faint" style="font-size:12px">Nenhum contato vinculado.</div>'}</div>
       <div class="dsec"><h4>Empresa</h4>
         <select class="in sm" style="width:100%;margin-bottom:8px" data-dch="orgId" aria-label="Empresa do negócio">${opts(S.orgs.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(x=>[x.id,x.name]),d.orgId,'— sem empresa —')}</select>
-        ${o?`<div class="ccard"><div class="nm">${esc(o.name)}</div><div class="row">${ic('building')}${esc([o.seg,o.size].filter(Boolean).join(' · ')||'—')}</div>
+        ${o?`<div class="kv" style="grid-template-columns:110px 1fr;margin-bottom:6px"><label>Tipo de empresa</label><select class="in sm" data-dch="org.tipo" aria-label="Tipo de empresa">${opts(orgTypes(),o.tipo||'','— sem tipo —')}</select></div>
+          <div class="ccard"><div class="nm">${esc(o.name)}</div><div class="row">${ic('building')}${esc([o.seg,o.size].filter(Boolean).join(' · ')||'—')}</div>
           <div class="row">${ic('pin')}${esc([o.city,o.uf].filter(Boolean).join(' / ')||'—')}</div>
           <div class="row">${ic('trophy')}Receita ganha: <span class="mono">${fR(sum((IX.dealsByOrg[o.id]||[]).filter(z=>z.status==='won'),z=>z.value))}</span></div></div>`:''}</div>
     </aside>
@@ -1597,6 +1608,7 @@ function setDealField(d,k,v){
   else if(k==='pipeId'){if(v===d.pipeId)return;const np=S.pipes.find(p=>p.id===v);from=(IX.pipe[d.pipeId]||{}).name;d.pipeId=v;d.stageId=np.stages[0].id;d.stageAt=TODAY;d.prob=null;to=np.name;label='Funil';}
   else if(k==='orgId'){from=(IX.org[d.orgId]||{}).name;d.orgId=v||null;const ps=S.people.filter(p=>p.orgId===v);d.personId=ps[0]?ps[0].id:null;to=(IX.org[v]||{}).name;label='Empresa';}
   else if(k==='personId'){from=(IX.person[d.personId]||{}).name;d.personId=v||null;to=(IX.person[v]||{}).name;label='Contato';}
+  else if(k==='org.tipo'){const o=S.orgs.find(x=>x.id===d.orgId);if(!o)return;from=o.tipo;o.tipo=v;to=v;label='Tipo de empresa';}
   else if(k.startsWith('cf.')){const f=S.fields.find(x=>x.id===k.slice(3));d.cf=d.cf||{};from=d.cf[k.slice(3)];d.cf[k.slice(3)]=v;to=v;label=f?f.name:k;}
   if(label)hist(d,'field',{k:label,from:from||'—',to:to||'—'});
   commit();
@@ -1732,14 +1744,16 @@ VIEWS.contacts=function(){
       const ds=IX.dealsByPerson[p.id]||[];const lt=S.acts.filter(a=>a.personId===p.id&&a.done).reduce((m,a)=>a.doneAt>m?a.doneAt:m,'');
       return `<tr class="clk" data-act="openPerson" data-id="${p.id}"><td><b>${esc(p.name)}</b></td><td>${esc((IX.org[p.orgId]||{}).name||'—')}</td><td>${esc(p.role||'—')}</td><td class="m">${esc(p.email||'—')}</td><td class="m">${esc(p.phone||'—')}</td><td class="m r">${ds.filter(d=>d.status==='open').length}</td><td class="m">${lt?rel(lt):'—'}</td></tr>`;}).join('')}</tbody></table>`;
   }else{
-    const l=S.orgs.filter(o=>!q||norm(o.name+' '+o.city+' '+o.seg).includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
-    body=`<table class="tbl"><thead><tr><th>Empresa</th><th>Segmento</th><th>Porte</th><th>Cidade / UF</th><th class="r">Contatos</th><th class="r">Negócios abertos</th><th class="r">Em aberto</th><th class="r">Receita ganha</th></tr></thead><tbody>${l.map(o=>{
+    const ot=U.ctOtype;
+    const l=S.orgs.filter(o=>(!q||norm(o.name+' '+o.city+' '+o.seg+' '+(o.tipo||'')).includes(q))&&(!ot||(ot==='__none'?!o.tipo:o.tipo===ot))).sort((a,b)=>a.name.localeCompare(b.name));
+    body=`<table class="tbl"><thead><tr><th>Empresa</th><th>Tipo de empresa</th><th>Segmento / perfil</th><th>Porte</th><th>Cidade / UF</th><th class="r">Contatos</th><th class="r">Negócios abertos</th><th class="r">Em aberto</th><th class="r">Receita ganha</th></tr></thead><tbody>${l.map(o=>{
       const ds=IX.dealsByOrg[o.id]||[],op=ds.filter(d=>d.status==='open');
-      return `<tr class="clk" data-act="openOrg" data-id="${o.id}"><td><b>${esc(o.name)}</b></td><td>${esc(o.seg||'—')}</td><td>${esc(o.size||'—')}</td><td>${esc([o.city,o.uf].filter(Boolean).join(' / ')||'—')}</td><td class="m r">${(IX.peopleByOrg[o.id]||[]).length}</td><td class="m r">${op.length}</td><td class="m r">${fR(sum(op,d=>d.value))}</td><td class="m r">${fR(sum(ds.filter(d=>d.status==='won'),d=>d.value))}</td></tr>`;}).join('')}</tbody></table>`;
+      return `<tr class="clk" data-act="openOrg" data-id="${o.id}"><td><b>${esc(o.name)}</b></td><td class="nw">${esc(o.tipo||'—')}</td><td>${esc(o.seg||'—')}</td><td>${esc(o.size||'—')}</td><td>${esc([o.city,o.uf].filter(Boolean).join(' / ')||'—')}</td><td class="m r">${(IX.peopleByOrg[o.id]||[]).length}</td><td class="m r">${op.length}</td><td class="m r">${fR(sum(op,d=>d.value))}</td><td class="m r">${fR(sum(ds.filter(d=>d.status==='won'),d=>d.value))}</td></tr>`;}).join('')}</tbody></table>`;
   }
   $('#main').innerHTML=`<div class="tbar">
     <div class="seg"><button class="${U.ct==='people'?'on':''}" data-act="ctTab" data-v="people">${ic('user')}Pessoas (${S.people.length})</button><button class="${U.ct==='orgs'?'on':''}" data-act="ctTab" data-v="orgs">${ic('building')}Empresas (${S.orgs.length})</button></div>
     <div class="srch">${ic('search')}<input class="in" placeholder="Buscar ${U.ct==='people'?'pessoas':'empresas'}" value="${esc(U.ctq)}" data-in="ctq" aria-label="Buscar contatos"></div>
+    ${U.ct==='orgs'?`<select class="in" data-ch="ctOtype" aria-label="Tipo de empresa">${opts(orgTypes().map(t=>[t,t]).concat([['__none','Sem tipo definido']]),U.ctOtype,'Tipo de empresa: todos')}</select>`:''}
     <span class="grow"></span><button class="btn" data-act="exportContacts">${ic('download')}Exportar CSV</button>
     <button class="btn pri" data-act="${U.ct==='people'?'newPerson':'newOrg'}">${ic('plus')}${U.ct==='people'?'Pessoa':'Empresa'}</button></div>
   <div class="tw max">${body}</div>`;
@@ -1949,9 +1963,10 @@ VIEWS.settings=function(){
     <tr class="tot"><td></td><td>Meta da equipe</td><td class="m r">${fR(sum(S.users,u=>+u.quota||0))}</td><td></td><td></td></tr></tbody></table>
     <form class="addrow" style="margin-top:10px" data-form="userAdd"><input class="in" name="v" placeholder="Nome do novo vendedor(a)" required aria-label="Novo vendedor"><button class="btn" type="submit">${ic('plus')}Adicionar</button></form></div>
   <div class="card c6"><h3>${ic('list')}Campos personalizados</h3><div class="hint">Campos extras exibidos na ficha de cada negócio</div>
-    ${S.fields.map(f=>`<div class="kv" style="grid-template-columns:1fr auto auto"><span style="color:var(--text);font-size:12.5px">${esc(f.name)} <span class="faint mono" style="font-size:10.5px">· ${{text:'texto',number:'número',date:'data',select:'lista'}[f.type]}${f.options&&f.options.length?' ('+esc(f.options.join(', '))+')':''}</span></span>
+    ${S.fields.map(f=>`<div class="kv" style="grid-template-columns:1fr auto auto"><span style="color:var(--text);font-size:12.5px">${esc(f.name)} <span class="faint mono" style="font-size:10.5px">· ${{text:'texto',number:'número',date:'data',select:'lista'}[f.type]}${f.options&&f.options.length?' ('+esc(f.options.join(', '))+')':''}${f.pipes&&f.pipes.length?' · só em '+esc(f.pipes.map(id=>(S.pipes.find(p=>p.id===id)||{}).name||id).join(', ')):''}</span></span>
       <span></span><button class="ibtn sm" data-act="delField" data-id="${f.id}" title="Remover" aria-label="Remover campo">${ic('trash')}</button></div>`).join('')}
     <button class="btn" style="margin-top:8px" data-act="newField">${ic('plus')}Novo campo</button></div>
+  ${listEd('orgTypes','Tipos de empresa','Classificação das empresas, usada nos filtros do pipeline e dos contatos')}
   ${listEd('sources','Origens de negócio','Canais de aquisição usados nos relatórios')}
   ${listEd('lostReasons','Motivos de perda','Obrigatórios ao marcar um negócio como perdido')}
   <div class="card c4"><h3>Etiquetas</h3><div class="hint">Classificação visual dos negócios</div>
@@ -2015,6 +2030,7 @@ function confirmDlg(text,onOk,okLabel){
   MOD={onOk};
   modal('<div class="mh"><h3>Confirmar</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div><div class="mb" style="font-size:13.5px">'+esc(text)+'</div><div class="mf" style="padding-top:0"><div class="mfoot" style="border:none;margin:0"><button class="btn ghost" data-act="closeModal">Cancelar</button><button class="btn pri" data-act="confirmOk">'+esc(okLabel||'Confirmar')+'</button></div></div>');
 }
+const dlOtypes=()=>'<datalist id="dl-otypes">'+orgTypes().map(t=>'<option value="'+esc(t)+'">').join('')+'</datalist>';
 const dlOrgs=()=>'<datalist id="dl-orgs">'+S.orgs.map(o=>'<option value="'+esc(o.name)+'">').join('')+'</datalist>';
 const dlPeople=()=>'<datalist id="dl-people">'+S.people.map(p=>'<option value="'+esc(p.name)+'">'+esc((IX.org[p.orgId]||{}).name||'')+'</option>').join('')+'</datalist>';
 
@@ -2030,8 +2046,9 @@ function newDealModal(pre){
     {k:'stageId',label:'Etapa',type:'select',options:p.stages.map(s=>[s.id,s.name]),value:pre.stageId||p.stages[0].id,w:'half'},
     {k:'ownerId',label:'Responsável',type:'select',options:S.users.map(u=>[u.id,u.name]),value:pre.ownerId||U.owner||S.users[0].id,w:'half'},
     {k:'source',label:'Origem',type:'select',options:S.sources,value:pre.source||S.sources[0],w:'half'},
+    {k:'otype',label:'Tipo de empresa',list:'dl-otypes',value:pre.otype||'',ph:'Usado se a empresa ainda não tiver tipo'},
     {k:'tags',label:'Etiquetas',type:'tags',value:pre.tags||[]}],
-    extra:dlOrgs()+dlPeople()+'<div id="dupwarn" style="flex:1 1 100%"></div>',
+    extra:dlOrgs()+dlPeople()+dlOtypes()+'<div id="dupwarn" style="flex:1 1 100%"></div>',
     onChange:(el)=>{
       if(el.name==='pipeId'){const np=IX.pipe[el.value];$('#f_stageId').innerHTML=opts(np.stages.map(s=>[s.id,s.name]),np.stages[0].id);}
       if(el.name==='org'){const o=S.orgs.find(x=>norm(x.name)===norm(el.value));const ex=o?S.deals.filter(d=>d.orgId===o.id&&d.status==='open'):[];
@@ -2041,6 +2058,7 @@ function newDealModal(pre){
       if(!v.title){toast('Informe o título do negócio',{icon:'alert'});return false;}
       snap();
       const o=findOrCreateOrg(v.org);const pe=findOrCreatePerson(v.person,o?o.id:null,pre.personExtra);
+      if(o&&v.otype&&!o.tipo)o.tipo=addOrgType(v.otype);
       const d={id:uid('d'),title:v.title,pipeId:v.pipeId,stageId:v.stageId,stageAt:TODAY,value:Math.max(0,+v.value||0),orgId:o?o.id:null,personId:pe?pe.id:null,
         ownerId:v.ownerId,source:v.source,tags:v.tags,close:v.close||null,created:TODAY,status:'open',closedAt:null,lostReason:null,lostNote:'',prob:null,items:[],discOk:false,cf:{},hist:[]};
       hist(d,'created',{to:v.stageId,lead:!!pre.leadId});
@@ -2096,13 +2114,14 @@ function orgModal(o){
   const isNew=!o;o=o||{name:'',seg:'',size:'Pequena',city:'',uf:''};
   const ds=isNew?[]:(IX.dealsByOrg[o.id]||[]),ppl=isNew?[]:(IX.peopleByOrg[o.id]||[]);
   formModal({title:isNew?'Nova empresa':o.name,cls:isNew?'':'wide',fields:[
-    {k:'name',label:'Razão social / nome',req:true,value:o.name,w:'half'},{k:'seg',label:'Segmento',value:o.seg,w:'half'},
+    {k:'name',label:'Razão social / nome',req:true,value:o.name,w:'half'},{k:'tipo',label:'Tipo de empresa',list:'dl-otypes',value:o.tipo||'',w:'half',ph:'Selecione ou digite um novo'},
+    {k:'seg',label:'Segmento / perfil',value:o.seg},
     {k:'size',label:'Porte',type:'select',options:['Pequena','Média','Grande'],value:o.size,w:'third'},{k:'city',label:'Cidade',value:o.city,w:'third'},{k:'uf',label:'UF',value:o.uf,w:'third'}],
-    extra:isNew?'':'<div class="fld"><label>Pessoas</label><div class="plist">'+(ppl.map(p=>'<button type="button" class="chip" data-act="openPerson" data-id="'+p.id+'">'+ic('user')+esc(p.name)+'</button>').join('')||'<span class="faint">Nenhuma</span>')+'</div></div>'+relDeals(ds),
+    extra:dlOtypes()+(isNew?'':'<div class="fld"><label>Pessoas</label><div class="plist">'+(ppl.map(p=>'<button type="button" class="chip" data-act="openPerson" data-id="'+p.id+'">'+ic('user')+esc(p.name)+'</button>').join('')||'<span class="faint">Nenhuma</span>')+'</div></div>'+relDeals(ds)),
     left:isNew?'':'<button type="button" class="btn dan l" data-act="delOrg" data-id="'+o.id+'">'+ic('trash')+'Excluir</button>',
     onSave:v=>{if(!v.name){toast('Informe o nome',{icon:'alert'});return false;}
       snap();if(isNew){o={id:uid('o')};S.orgs.push(o);}
-      Object.assign(o,{name:v.name,seg:v.seg,size:v.size,city:v.city,uf:v.uf.toUpperCase().slice(0,2)});
+      Object.assign(o,{name:v.name,tipo:addOrgType(v.tipo),seg:v.seg,size:v.size,city:v.city,uf:v.uf.toUpperCase().slice(0,2)});
       closeModal();commit();toast(isNew?'Empresa cadastrada':'Empresa atualizada',{undo:true});return true;}});
 }
 function relDeals(ds){
@@ -2198,9 +2217,10 @@ function productModal(p){
 function fieldModal(){
   formModal({title:'Novo campo personalizado',fields:[{k:'name',label:'Nome do campo',req:true},
     {k:'type',label:'Tipo',type:'select',options:[['text','Texto'],['number','Número'],['date','Data'],['select','Lista de opções']],value:'text'},
-    {k:'options',label:'Opções (separadas por vírgula)',when:['type','select']}],
+    {k:'options',label:'Opções (separadas por vírgula)',when:['type','select']},
+    {k:'pipe',label:'Mostrar nos negócios de',type:'select',options:[['','Todos os funis']].concat(S.pipes.map(p=>[p.id,p.name])),value:''}],
     onSave:v=>{if(!v.name){toast('Informe o nome',{icon:'alert'});return false;}snap();
-      S.fields.push({id:uid('cf'),name:v.name,type:v.type,options:v.type==='select'?v.options.split(',').map(x=>x.trim()).filter(Boolean):[]});closeModal();commit();toast('Campo criado');return true;}});
+      S.fields.push({id:uid('cf'),name:v.name,type:v.type,options:v.type==='select'?v.options.split(',').map(x=>x.trim()).filter(Boolean):[],pipes:v.pipe?[v.pipe]:[]});closeModal();commit();toast('Campo criado');return true;}});
 }
 function tagsModal(d){
   formModal({title:'Etiquetas do negócio',fields:[{k:'tags',label:'Etiquetas',type:'tags',value:d.tags}],
@@ -2283,7 +2303,7 @@ const A={
   fclear:()=>{U.f=Object.assign({},UDEF.f);render();},
   saveView:()=>{if(!activeFilters()){toast('Aplique ao menos um filtro antes de salvar',{icon:'alert'});return;}
     formModal({title:'Salvar filtro',fields:[{k:'name',label:'Nome do filtro',req:true,ph:'Ex.: Enterprise em negociação'}],onSave:v=>{if(!v.name)return false;
-      const f={};['tag','close','src','rot','noact','q'].forEach(k=>{if(U.f[k])f[k]=U.f[k];});S.views.push({id:uid('v'),name:v.name,f});closeModal();commit();toast('Filtro salvo');return true;}});},
+      const f={};['tag','otype','close','src','rot','noact','q'].forEach(k=>{if(U.f[k])f[k]=U.f[k];});S.views.push({id:uid('v'),name:v.name,f});closeModal();commit();toast('Filtro salvo');return true;}});},
   sort:t=>{const k=t.dataset.k;U.sort=U.sort.k===k?{k,d:-U.sort.d}:{k,d:['title','org','owner','stage','source','close','next'].includes(k)?1:-1};renderPipeBody();saveUI();},
   selNone:()=>{SEL.clear();renderPipeBody();},
   bulkWon:()=>{const ds=[...SEL].map(getDeal).filter(d=>d&&d.status==='open');if(!ds.length)return;snap();
@@ -2412,7 +2432,7 @@ function sendMsg(open){
 const C={
   who:t=>{U.owner=t.value;SEL.clear();render();},
   pipe:t=>{U.pipe=t.value;U.rp.pipe=t.value;SEL.clear();render();},
-  ftag:t=>{U.f.tag=t.value;render();}, fclose:t=>{U.f.close=t.value;render();}, fsrc:t=>{U.f.src=t.value;render();}, fstatus:t=>{U.f.status=t.value;render();},
+  ftag:t=>{U.f.tag=t.value;render();}, fclose:t=>{U.f.close=t.value;render();}, fsrc:t=>{U.f.src=t.value;render();}, fotype:t=>{U.f.otype=t.value;render();}, ctOtype:t=>{U.ctOtype=t.value;render();}, fstatus:t=>{U.f.status=t.value;render();},
   applyView:t=>{const v=S.views.find(x=>x.id===t.value);if(!v)return;U.f=Object.assign({},UDEF.f,v.f);render();toast('Filtro “'+v.name+'” aplicado');},
   selAll:t=>{filtDeals().forEach(d=>t.checked?SEL.add(d.id):SEL.delete(d.id));renderPipeBody();},
   selOne:t=>{t.checked?SEL.add(t.dataset.id):SEL.delete(t.dataset.id);renderPipeBody();},
@@ -2517,10 +2537,10 @@ const csvCell=v=>{v=String(v==null?'':v);return /[;"\n\r]/.test(v)?'"'+v.replace
 function dlCSV(name,rows){dl(name+'-'+TODAY+'.csv','﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'),'text/csv;charset=utf-8');}
 function exportDeals(ds,name){
   if(!ds.length){toast('Nada para exportar',{icon:'alert'});return;}
-  dlCSV(name,[['ID','Título','Empresa','Contato','E-mail','Telefone','Valor','Funil','Etapa','Probabilidade','Status','Responsável','Origem','Previsão','Criado em','Encerrado em','Motivo de perda','Etiquetas','Score']].concat(ds.map(d=>{
+  dlCSV(name,[['ID','Título','Empresa','Contato','E-mail','Telefone','Valor','Funil','Etapa','Probabilidade','Status','Responsável','Origem','Previsão','Criado em','Encerrado em','Motivo de perda','Etiquetas','Score','Tipo de empresa']].concat(ds.map(d=>{
     const o=IX.org[d.orgId],p=IX.person[d.personId],h=health(d);
     return [d.id,d.title,o?o.name:'',p?p.name:'',p?p.email:'',p?p.phone:'',String(Math.round(d.value)).replace('.',','),(IX.pipe[d.pipeId]||{}).name,st(d).s.name,fP(prob(d),0),
-      {open:'Aberto',won:'Ganho',lost:'Perdido'}[d.status],(IX.user[d.ownerId]||{}).name,d.source,fD(d.close),fD(d.created),d.closedAt?fD(d.closedAt):'',d.lostReason||'',d.tags.join(', '),h?h.v:''];})));
+      {open:'Aberto',won:'Ganho',lost:'Perdido'}[d.status],(IX.user[d.ownerId]||{}).name,d.source,fD(d.close),fD(d.created),d.closedAt?fD(d.closedAt):'',d.lostReason||'',d.tags.join(', '),h?h.v:'',o&&o.tipo||''];})));
   toast(ds.length+' negócio(s) exportados em CSV',{icon:'download'});
 }
 function pickFile(accept,cb){const f=$('#fileIn');f.value='';f.accept=accept;f.onchange=()=>{const file=f.files[0];if(!file)return;const r=new FileReader();r.onload=()=>cb(String(r.result));r.readAsText(file,'utf-8');};f.click();}
@@ -2543,7 +2563,7 @@ function importCSV(text){
   const H=rows[0].map(h=>norm(h).replace(/[^a-z]/g,''));
   const col=(...names)=>{for(const n of names){const i=H.indexOf(n);if(i>=0)return i;}return -1;};
   const ix={title:col('titulo','negocio','title','nome'),org:col('empresa','organizacao','org','company'),person:col('contato','pessoa','person'),email:col('email'),phone:col('telefone','fone','phone','whatsapp'),
-    value:col('valor','value'),pipe:col('funil','pipeline'),stage:col('etapa','stage','fase'),owner:col('responsavel','vendedor','owner'),close:col('previsao','fechamento','dataprevista','close'),source:col('origem','source','canal'),tags:col('etiquetas','tags')};
+    value:col('valor','value'),pipe:col('funil','pipeline'),stage:col('etapa','stage','fase'),owner:col('responsavel','vendedor','owner'),close:col('previsao','fechamento','dataprevista','close'),source:col('origem','source','canal'),tags:col('etiquetas','tags'),otype:col('tipodeempresa','tipoempresa','ramo','tipo')};
   if(ix.title<0&&ix.org<0){toast('Não encontrei as colunas “Título” ou “Empresa” no CSV',{icon:'alert'});return;}
   snap();let n=0;buildIx();
   rows.slice(1).forEach(r=>{
@@ -2553,6 +2573,7 @@ function importCSV(text){
     const stage=pipe.stages.find(s=>norm(s.name)===norm(g('stage')))||pipe.stages[0];
     const owner=S.users.find(u=>g('owner')&&norm(u.name).startsWith(norm(g('owner'))))||S.users.find(u=>u.id===nextOwnerRR());
     const o=findOrCreateOrg(g('org'));const pe=findOrCreatePerson(g('person'),o?o.id:null,{email:g('email'),phone:g('phone')});
+    if(o&&g('otype')&&!o.tipo)o.tipo=addOrgType(g('otype'));
     const tags=g('tags').split(/[,|]/).map(x=>x.trim()).filter(Boolean);tags.forEach(t=>{if(!S.tags.some(x=>x.name===t))S.tags.push({name:t,color:'cinza'});});
     const src=g('source');if(src&&!S.sources.includes(src))S.sources.push(src);
     const d={id:uid('d'),title,pipeId:pipe.id,stageId:stage.id,stageAt:TODAY,value:parseMoney(g('value')),orgId:o?o.id:null,personId:pe?pe.id:null,ownerId:owner.id,source:src||S.sources[0],
@@ -2683,6 +2704,7 @@ async function privOpen(pw,remember,fileText){
   U=JSON.parse(JSON.stringify(UDEF));U.pipe=S.pipes[0].id;U.rp.pipe=S.pipes[0].id;U.fc.pipe='';
   SEL.clear();closeDrawer();closeModal();save();render();window.scrollTo(0,0);
   toast('Base privada aberta: '+S.deals.length+' negócios'+(env.savedAt?' · versão de '+fD(env.savedAt)+' '+env.savedAt.slice(11,16):'')+(got.from==='nuvem'?' (nuvem)':''),{icon:'lock'});
+  applyImports();
 }
 async function privSave(pw,pw2){
   if(pw.length<10)return privMsg('Use uma senha com pelo menos 10 caracteres.');
@@ -2883,8 +2905,9 @@ async function syncUnlock(pw){
   try{got=SY.cur||await fetchLatestEnv();}catch(e){privBusy(false,'Continuar');privMsg('Não foi possível ler a base salva: '+(e.message||e));return;}
   let pk;try{pk=await pkFor(got.env,pw);await decWith(pk,got.env);}catch(e){privBusy(false,'Continuar');privMsg('Senha incorreta.');return;}
   PK=pk;keepPK();SY.cur=null;closeModal();
-  if(got.from==='nuvem'&&got.sha!==SM.sha){if(SM.dirty)return syncConflict(got);return adoptCloud(got);}
+  if(got.from==='nuvem'&&got.sha!==SM.sha){if(SM.dirty)return syncConflict(got);await adoptCloud(got);return applyImports();}
   setSync(SM.dirty?'pending':'idle');if(SM.dirty)syncPush();
+  applyImports();
 }
 
 /* ---------- configuração ---------- */
@@ -2959,6 +2982,41 @@ setInterval(()=>{if(document.visibilityState==='visible')syncPull(false);},12000
 window.addEventListener('beforeunload',e=>{if(syncOn()&&(SM.dirty||SY.busy)){e.preventDefault();e.returnValue='';}});
 
 /* =====================================================================
+   PACOTES DE IMPORTAÇÃO — listas novas (ex.: planilhas de prospecção)
+   publicadas criptografadas em importacoes.json, com a mesma chave da
+   base. Quando a base privada é aberta, os pacotes ainda não aplicados
+   são SOMADOS a ela (nada existente é sobrescrito) e salvos na nuvem.
+   ===================================================================== */
+const IMPORTS_FILE='importacoes.json';let IMPORT_WARNED=false,IMPORT_BUSY=false;
+async function applyImports(){
+  if(isDemo()||!PK||IMPORT_BUSY)return;
+  IMPORT_BUSY=true;
+  try{
+    let list;try{const r=await fetch(IMPORTS_FILE+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;list=await r.json();}catch(e){return;}
+    const done=new Set(S.imports||[]);
+    const pend=((list&&list.packs)||[]).filter(p=>p&&p.id&&!done.has(p.id)&&isEnc(p.env));
+    const names=[];let snapped=false;
+    for(const p of pend){
+      if(p.env.salt!==PK.salt){if(!IMPORT_WARNED){IMPORT_WARNED=true;toast('Há uma importação pendente criptografada com outra senha: peça uma nova versão do pacote.',{icon:'alert'});}continue;}
+      let pay;try{pay=await decWith(PK,p.env);}catch(e){continue;}
+      if(!snapped){snap();snapped=true;}
+      mergePack(pay);(S.imports=S.imports||[]).push(p.id);names.push(pay.title||p.id);
+    }
+    if(names.length){commit();toast('Importação aplicada à sua base: '+names.join(', '),{icon:'upload'});}
+  }finally{IMPORT_BUSY=false;}
+}
+function mergePack(pay){
+  ['pipes','orgs','people','deals','acts','notes','products','fields','templates','seqs','autos','views'].forEach(k=>{
+    if(!Array.isArray(pay[k]))return;S[k]=S[k]||[];const have=new Set(S[k].map(x=>x.id));
+    pay[k].forEach(x=>{if(x&&x.id&&!have.has(x.id)){S[k].push(x);have.add(x.id);}});});
+  ['sources','lostReasons','orgTypes'].forEach(k=>{if(!Array.isArray(pay[k]))return;S[k]=S[k]||[];pay[k].forEach(v=>{if(!S[k].includes(v))S[k].push(v);});});
+  (pay.tags||[]).forEach(t=>{if(!S.tags.some(x=>x.name===t.name))S.tags.push(t);});
+  (pay.patch||[]).forEach(p=>{const o=(S[p.coll]||[]).find(x=>x.id===p.id);if(!o)return;
+    if(p.ifEq&&Object.keys(p.ifEq).some(k=>o[k]!==p.ifEq[k]))return;
+    Object.keys(p.set||{}).forEach(k=>{const cur=o[k];const empty=cur==null||cur===''||(Array.isArray(cur)&&!cur.length);if(!p.onlyIfEmpty||empty)o[k]=p.set[k];});});
+}
+
+/* =====================================================================
    Inicialização
    ===================================================================== */
 (async function init(){
@@ -2966,10 +3024,11 @@ window.addEventListener('beforeunload',e=>{if(syncOn()&&(SM.dirty||SY.busy)){e.p
   render();
   if(isDemo())return;
   const k=await idbGet('pk');PK=k&&k.key?k:null;
-  if(!syncOn()){setSync('off');return;}
-  if(!PK){setSync('locked');return;}
-  setSync(SM.dirty?'pending':'idle');
-  if(SM.dirty)syncPushSoon(800);else syncPull(true);
+  if(syncOn()){
+    if(!PK)setSync('locked');
+    else{setSync(SM.dirty?'pending':'idle');if(SM.dirty)syncPushSoon(800);else await syncPull(true);}
+  }else setSync('off');
+  applyImports();
 })();
 </script>
 </body>
