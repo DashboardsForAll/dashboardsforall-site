@@ -209,6 +209,11 @@ input[type=date].in,input[type=time].in{color-scheme:dark}
 .who-cell{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 
 /* ---------- kanban ---------- */
+.pgroup{margin-bottom:20px}
+.pgh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0 10px}
+.pgh h3{font-family:var(--title);font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.pgh h3 .ic{color:var(--verde)}
+.pgh span{font-size:12px;color:var(--muted)}
 .board{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;align-items:flex-start;scroll-behavior:auto}
 .col{flex:0 0 272px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:260px;transition:border-color .12s,background .12s}
 .col.over{border-color:var(--verde);background:rgba(63,182,139,.06);box-shadow:inset 0 0 0 1px var(--verde)}
@@ -887,7 +892,7 @@ function saveUI(){try{localStorage.setItem(UKEY,JSON.stringify(U));}catch(e){}}
 let S=loadState();if(S&&!S.touched&&S.genAt!==TODAY)S=null;S=S||genDemo();
 LAST_JSON=JSON.stringify(S);
 let U=loadUI();
-if(!S.pipes.find(p=>p.id===U.pipe))U.pipe=S.pipes[0].id;
+if(U.pipe&&!S.pipes.find(p=>p.id===U.pipe))U.pipe=S.pipes[0].id; /* '' = todos os funis */
 if(!S.pipes.find(p=>p.id===U.rp.pipe))U.rp.pipe=S.pipes[0].id;
 if(U.owner&&!S.users.find(u=>u.id===U.owner))U.owner='';
 const DR={open:false,id:null,tab:'acts',ch:'email',tpl:''};
@@ -1059,10 +1064,10 @@ function render(){
   if(!Array.isArray(S.orgTypes))S.orgTypes=[...new Set(S.orgs.map(o=>o.tipo).filter(Boolean))].sort();
   buildIx();
   renderMode();renderWho();renderLedger();renderTabs();renderBellBadge();
-  const sx=$('#board')?$('#board').scrollLeft:0;
+  const sx={};document.querySelectorAll('.board').forEach(b=>{if(b.id)sx[b.id]=b.scrollLeft;});
   killCharts();
   (VIEWS[U.tab]||VIEWS.pipeline)();
-  if($('#board'))$('#board').scrollLeft=sx;
+  Object.keys(sx).forEach(id=>{const b=document.getElementById(id);if(b)b.scrollLeft=sx[id];});
   if(DR.open)renderDrawer();
   if($('#bell').classList.contains('on'))renderBell();
   saveUI();
@@ -1169,7 +1174,7 @@ VIEWS.pipeline=function(){
   const f=U.f;
   $('#main').innerHTML=`
   <div class="tbar">
-    <select class="in" data-ch="pipe" aria-label="Funil">${opts(S.pipes.map(p=>[p.id,p.name]),U.pipe)}</select>
+    <select class="in" data-ch="pipe" aria-label="Funil">${opts(S.pipes.map(p=>[p.id,p.name]),U.pipe,'Todos os funis')}</select>
     <div class="seg" role="group" aria-label="Modo de visualização">
       <button class="${U.view==='kanban'?'on':''}" data-act="setView" data-v="kanban">${ic('kanban')}Kanban</button>
       <button class="${U.view==='list'?'on':''}" data-act="setView" data-v="list">${ic('list')}Lista</button>
@@ -1201,11 +1206,16 @@ function renderPipeBody(){
 let CARD_TIPO=false; /* mostra o tipo de empresa no cartão quando o funil mistura tipos */
 function boardHTML(deals){
   CARD_TIPO=new Set(deals.map(orgTipo)).size>1;
-  const p=IX.pipe[U.pipe]||S.pipes[0];
+  if(U.pipe)return pipeBoard(IX.pipe[U.pipe]||S.pipes[0],deals);
+  /* “Todos os funis”: um quadro por funil, um abaixo do outro (cada funil tem as suas etapas) */
+  return S.pipes.map(p=>{const ds=deals.filter(d=>d.pipeId===p.id);
+    return `<section class="pgroup"><div class="pgh"><h3>${ic('kanban')}${esc(p.name)}</h3><span class="mono">${ds.length} negócios · ${fRs(sum(ds,d=>d.value))} · pond. ${fRs(sum(ds,d=>d.value*prob(d)))}</span></div>${pipeBoard(p,ds)}</section>`;}).join('');
+}
+function pipeBoard(p,deals){
   const by={};p.stages.forEach(s=>by[s.id]=[]);
   deals.forEach(d=>(by[d.stageId]||by[p.stages[0].id]).push(d));
   const totals=p.stages.map(s=>sum(by[s.id],d=>d.value));const mx=Math.max(1,...totals);
-  return '<div class="board" id="board">'+p.stages.map((s,i)=>{
+  return '<div class="board" id="board-'+p.id+'">'+p.stages.map((s,i)=>{
     const ds=by[s.id].sort((a,b)=>(a.close||'9999').localeCompare(b.close||'9999'));
     const w=sum(ds,d=>d.value*prob(d));
     return `<section class="col" data-drop="stage" data-id="${s.id}" aria-label="${esc(s.name)}">
@@ -1247,7 +1257,7 @@ function listHTML(deals){
   const bulk=SEL.size?`<div class="tbar" style="background:var(--panel3);border:1px solid var(--line2);border-radius:10px;padding:8px 10px">
      <b class="mono" style="font-size:12px">${SEL.size} selecionado(s)</b>
      <select class="in sm" data-ch="bulkOwner"><option value="">Alterar responsável…</option>${ownerOpts('')}</select>
-     <select class="in sm" data-ch="bulkStage"><option value="">Mover para etapa…</option>${(IX.pipe[U.pipe]||S.pipes[0]).stages.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('')}</select>
+     <select class="in sm" data-ch="bulkStage"><option value="">Mover para etapa…</option>${(U.pipe?[IX.pipe[U.pipe]||S.pipes[0]]:S.pipes).map(p=>'<optgroup label="'+esc(p.name)+'">'+p.stages.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('')+'</optgroup>').join('')}</select>
      <select class="in sm" data-ch="bulkTag"><option value="">Adicionar etiqueta…</option>${S.tags.map(t=>'<option>'+esc(t.name)+'</option>').join('')}</select>
      <button class="btn sm won" data-act="bulkWon">${ic('trophy')}Marcar ganhos</button>
      <button class="btn sm" data-act="exportSel">${ic('download')}Exportar CSV</button>
@@ -1260,7 +1270,7 @@ function listHTML(deals){
       return `<tr class="${SEL.has(d.id)?'sel':''}"><td><input type="checkbox" data-ch="selOne" data-id="${d.id}"${chk(SEL.has(d.id))} aria-label="Selecionar"></td>
       <td><button class="lnk" data-act="openDeal" data-id="${d.id}">${esc(d.title)}</button>${d.tags.length?'<div class="dtags">'+d.tags.map(tagPill).join('')+'</div>':''}</td>
       <td>${esc(o?o.name:'—')}</td><td class="nw">${esc((o&&o.tipo)||'—')}</td><td class="m r">${fR(d.value)}</td>
-      <td class="nw">${esc(st(d).s.name)}${rotting(d)?' <span class="bdg bC">parado '+dInStage(d)+'d</span>':''}</td>
+      <td class="nw">${esc(st(d).s.name)}${rotting(d)?' <span class="bdg bC">parado '+dInStage(d)+'d</span>':''}${U.pipe?'':'<span class="sub2">'+esc(st(d).p.name)+'</span>'}</td>
       <td class="m r">${fP(prob(d),0)}</td><td><span class="who-cell">${avatar(u)}${esc(u?u.name:'—')}</span></td>
       <td class="m ${d.status==='open'&&d.close&&d.close<TODAY?'neg':''}">${fD(d.close)}</td>
       <td class="nw">${na?`<span class="${as==='over'?'neg':as==='today'?'pos':''}">${ic(ACT_T[na.type].i)} ${esc(na.subject)}</span><span class="sub2 mono">${rel(na.due)}</span>`:d.status==='open'?'<span class="am">'+ic('alert')+' nenhuma</span>':'—'}</td>
@@ -1303,9 +1313,11 @@ function moveGhost(x,y){
 }
 function loop(){ /* rolagem automática perto das bordas */
   if(!DG.on)return;
-  const b=$('#board'),m=60,x=DG.lastX,y=DG.lastY,W=window.innerWidth,H=window.innerHeight;
+  const m=60,x=DG.lastX,y=DG.lastY,W=window.innerWidth,H=window.innerHeight;
+  const under=document.elementFromPoint(x,y),b=under&&under.closest('.board');
   if(b){if(x<m)b.scrollLeft-=14;else if(x>W-m)b.scrollLeft+=14;}
-  if(y<90)window.scrollBy(0,-12);else if(y>H-110&&y<H-80)window.scrollBy(0,12);
+  /* rolagem vertical: perto do topo sobe; na faixa acima das zonas Ganho/Perdido desce (útil com “Todos os funis”) */
+  if(y<110)window.scrollBy(0,-14);else if(y>H-170&&!DG.zone)window.scrollBy(0,14);
   DG.raf=requestAnimationFrame(loop);
 }
 window.addEventListener('pointermove',e=>{
@@ -1931,7 +1943,7 @@ VIEWS.autos=function(){
    ===================================================================== */
 let SETP=null;
 VIEWS.settings=function(){
-  if(!SETP||!S.pipes.find(p=>p.id===SETP))SETP=U.pipe;
+  if(!SETP||!S.pipes.find(p=>p.id===SETP))SETP=U.pipe||S.pipes[0].id;
   const p=S.pipes.find(x=>x.id===SETP);
   const cnt=sid=>S.deals.filter(d=>d.stageId===sid&&d.status==='open').length;
   const listEd=(key,title,hint)=>`<div class="card c4"><h3>${title}</h3><div class="hint">${hint}</div>
@@ -2431,7 +2443,7 @@ function sendMsg(open){
 /* ---------------- alterações (change) ---------------- */
 const C={
   who:t=>{U.owner=t.value;SEL.clear();render();},
-  pipe:t=>{U.pipe=t.value;U.rp.pipe=t.value;SEL.clear();render();},
+  pipe:t=>{U.pipe=t.value;if(t.value)U.rp.pipe=t.value;SEL.clear();render();},
   ftag:t=>{U.f.tag=t.value;render();}, fclose:t=>{U.f.close=t.value;render();}, fsrc:t=>{U.f.src=t.value;render();}, fotype:t=>{U.f.otype=t.value;render();}, ctOtype:t=>{U.ctOtype=t.value;render();}, fstatus:t=>{U.f.status=t.value;render();},
   applyView:t=>{const v=S.views.find(x=>x.id===t.value);if(!v)return;U.f=Object.assign({},UDEF.f,v.f);render();toast('Filtro “'+v.name+'” aplicado');},
   selAll:t=>{filtDeals().forEach(d=>t.checked?SEL.add(d.id):SEL.delete(d.id));renderPipeBody();},
