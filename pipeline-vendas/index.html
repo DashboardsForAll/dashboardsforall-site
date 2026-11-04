@@ -67,6 +67,24 @@ kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line2);border-
 .ibtn.sm{width:28px;height:28px;border-radius:7px}
 .ibtn.sm .ic{width:13px;height:13px}
 .badge[hidden]{display:none}
+.syncchip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-family:var(--mono);font-size:11px;white-space:nowrap}
+.syncchip[hidden]{display:none}
+.syncchip:hover{color:var(--text);border-color:var(--faint)}
+.syncchip i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.syncchip .ic{width:14px;height:14px}
+.syncchip.ok i{background:var(--verde)}
+.syncchip.wait i{background:var(--ambar);animation:blink 1s ease-in-out infinite}
+.syncchip.bad{color:var(--vermelho);border-color:rgba(226,105,78,.5)}
+.syncchip.bad i{background:var(--vermelho)}
+@keyframes blink{50%{opacity:.3}}
+.syncbox{border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-top:12px;background:var(--panel2);font-size:12.5px;line-height:1.6}
+.syncbox.on{border-color:rgba(63,182,139,.45)}
+.syncbox h4{font-family:var(--title);font-size:13.5px;display:flex;gap:7px;align-items:center;margin-bottom:6px}
+.syncbox h4 .ic{color:var(--verde)}
+.steps{margin:8px 0 4px 18px;font-size:12.3px}
+.steps li{margin:3px 0}
+details.adv{margin-top:12px;font-size:12.5px}
+details.adv summary{cursor:pointer;color:var(--muted);font-weight:600}
 .badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--vermelho);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;display:grid;place-items:center;border:2px solid var(--ink)}
 
 .ledger{margin-top:16px;border:1px solid var(--line);border-bottom:none;border-radius:11px 11px 0 0;background:var(--panel2);overflow-x:auto}
@@ -476,6 +494,7 @@ body.dragmode *{cursor:grabbing!important}
       <button class="hsearch" data-act="search" aria-label="Buscar (Ctrl+K)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar no CRM…</span><kbd>Ctrl K</kbd></button>
       <label class="who" for="who">Visão
         <select class="in" id="who" data-ch="who"></select></label>
+      <button class="syncchip" id="syncChip" data-act="syncChip" hidden></button>
       <button class="ibtn" id="privBtn" data-act="priv" title="Minha base privada (acesso com senha)" aria-label="Minha base privada"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
       <button class="ibtn" data-act="features" title="Recursos do CRM" aria-label="Recursos do CRM"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
       <button class="ibtn" id="bellBtn" data-act="bell" title="Alertas e notificações" aria-label="Alertas e notificações"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge" id="bellN" hidden></span></button>
@@ -598,6 +617,7 @@ const IC={
   arrowR:'<path d="M5 12h14M12 5l7 7-7 7"/>',
   save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/>',
   pinned:'<path d="M12 17v5M9 10.8V4h6v6.8l3 3.2H6z"/>',
+  cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   percent:'<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'
 };
@@ -874,7 +894,9 @@ const DR={open:false,id:null,tab:'acts',ch:'email',tpl:''};
 const SEL=new Set();
 let UNDO=null;
 function snap(){UNDO=LAST_JSON||JSON.stringify(S);}
-function undo(){if(!UNDO)return;S=JSON.parse(UNDO);UNDO=null;save();render();toast('Ação desfeita',{icon:'undo'});}
+const AFTER_COMMIT=[]; /* ganchos executados após cada alteração confirmada (ex.: salvamento na nuvem) */
+function afterCommit(){AFTER_COMMIT.forEach(f=>{try{f();}catch(e){}});}
+function undo(){if(!UNDO)return;S=JSON.parse(UNDO);UNDO=null;save();render();afterCommit();toast('Ação desfeita',{icon:'undo'});}
 
 /* ---------------- índices ---------------- */
 let IX={};
@@ -1032,7 +1054,7 @@ function findOrCreatePerson(name,orgId,extra){
 const CH={};
 function mkChart(id,cfg){const el=document.getElementById(id);if(!el||!window.Chart)return;if(CH[id])CH[id].destroy();CH[id]=new Chart(el,cfg);}
 function killCharts(){Object.keys(CH).forEach(k=>{try{CH[k].destroy();}catch(e){}delete CH[k];});}
-function commit(){S.touched=true;save();render();}
+function commit(){S.touched=true;save();render();afterCommit();}
 function render(){
   buildIx();
   renderMode();renderWho();renderLedger();renderTabs();renderBellBadge();
@@ -1059,6 +1081,7 @@ function renderMode(){ /* textos de demonstração × base própria importada */
   const demo=isDemo();
   $('#subt').textContent=demo?'Dashboards For All · demonstração interativa · dados fictícios':'Base privada · '+S.cfg.company;
   $('#privBtn').classList.toggle('on',!demo);
+  renderSync();
   $('#footL').textContent=demo?'DFA · Dashboards For All — demonstração com dados fictícios · as alterações ficam salvas apenas neste navegador':(NOPERSIST?'Base privada aberta só nesta aba — nada fica gravado neste navegador':'Base privada gravada neste navegador')+' · para atualizar a versão do site, use o cadeado → Baixar base-privada.json';
   $('#footR').innerHTML=demo?'Empresa-exemplo: Nexo Software (fictícia) · <button data-act="resetDemo">restaurar dados de demonstração</button>':'<button data-act="priv">gerenciar base privada</button> · <button data-act="backup">baixar backup (JSON)</button>';
 }
@@ -2361,7 +2384,7 @@ const A={
   csvTemplate:()=>dlCSV('modelo-importacao-negocios',[['Título','Empresa','Contato','E-mail','Telefone','Valor','Funil','Etapa','Responsável','Previsão','Origem','Etiquetas'],
     ['Exemplo Ltda · ERP Gestão','Exemplo Ltda','Maria Souza','maria@exemplo.example','(11) 90000-0000','48.000,00',S.pipes[0].name,S.pipes[0].stages[1].name,S.users[0].name,fD(addD(TODAY,30)),S.sources[0],'Quente']]),
   importCsv:()=>pickFile('.csv,text/csv',importCSV),
-  backup:()=>dl('crm-backup-'+TODAY+'.json',JSON.stringify(S,null,1),'application/json'),
+  backup:()=>dl('crm-backup-'+TODAY+'.json',JSON.stringify(stripSecrets(S),null,1),'application/json'),
   restore:()=>pickFile('.json,application/json',txt=>{let o;try{o=JSON.parse(txt);}catch(e){toast('Arquivo inválido',{icon:'alert'});return;}
     if(isEnc(o)){toast('Este arquivo está criptografado: abra pelo cadeado (Minha base privada)',{icon:'lock'});return;}
     if(!o||!Array.isArray(o.deals)||!Array.isArray(o.pipes)||!Array.isArray(o.users)){toast('O arquivo não parece um backup deste CRM',{icon:'alert'});return;}
@@ -2550,99 +2573,136 @@ if(window.Chart){
     ch.data.datasets.forEach((ds,di)=>{const m=ch.getDatasetMeta(di);if(m.hidden||m.type==='line')return;m.data.forEach((el,i)=>{const t=o.fmt(ds.data[i],i,di);if(!t)return;
       if(ch.options.indexAxis==='y'){c.textAlign='left';c.fillText(t,el.x+6,el.y);}else{c.textAlign='center';c.fillText(t,el.x,el.y-9);}});});c.restore();}});
 }
-(function init(){
-  const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))U.tab=h;
-  render();
-})();
+/* a inicialização fica no fim do script (app9), depois de todos os módulos */
 
 /* =====================================================================
-   BASE PRIVADA — dados reais publicados criptografados ao lado da página
-   (base-privada.json, AES-256-GCM com chave derivada da senha por
-   PBKDF2-SHA256). A senha nunca sai do navegador; sem ela o arquivo é
-   ilegível. Visitantes continuam vendo apenas a demonstração.
+   BASE PRIVADA — dados reais publicados criptografados
+   (AES-256-GCM com chave derivada da senha por PBKDF2-SHA256; conteúdo
+   comprimido com gzip quando o navegador permite). A senha nunca sai do
+   navegador; sem ela o arquivo é ilegível. Visitantes veem só a demo.
+   A versão mais recente fica no branch de dados do GitHub (ver
+   salvamento automático, abaixo); o arquivo ao lado da página é o ponto
+   de partida quando a nuvem ainda não foi ativada.
    ===================================================================== */
 const PRIV_FILE='base-privada.json', PRIV_ITER=600000;
 const te=new TextEncoder(), td=new TextDecoder();
 function b64e(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
-function b64d(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
-async function privKey(pw,salt,iter){
+function b64d(s){const b=atob(String(s).replace(/\s/g,'')),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+async function streamBytes(u8,tr){return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(tr)).arrayBuffer());}
+async function deriveKey(pw,salt,iter){
   const base=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
   return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
-async function privEncrypt(obj,pw){
-  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await privKey(pw,salt,PRIV_ITER),te.encode(JSON.stringify(obj)));
-  return {app:'dfa-pipeline-crm',v:1,alg:'AES-256-GCM',kdf:'PBKDF2-SHA256',iter:PRIV_ITER,salt:b64e(salt),iv:b64e(iv),data:b64e(new Uint8Array(ct)),savedAt:nowTs()};
+/* PK = chave da sessão {key: CryptoKey não exportável, salt (base64), iter} */
+let PK=null;
+async function newPK(pw){const salt=crypto.getRandomValues(new Uint8Array(16));return {key:await deriveKey(pw,salt,PRIV_ITER),salt:b64e(salt),iter:PRIV_ITER};}
+async function pkFor(env,pw){return {key:await deriveKey(pw,b64d(env.salt),+env.iter||PRIV_ITER),salt:env.salt,iter:+env.iter||PRIV_ITER};}
+async function encWith(pk,obj){
+  let data=te.encode(JSON.stringify(obj)),zip=null;
+  if(window.CompressionStream){try{data=await streamBytes(data,new CompressionStream('gzip'));zip='gzip';}catch(e){data=te.encode(JSON.stringify(obj));}}
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},pk.key,data);
+  const env={app:'dfa-pipeline-crm',v:1,alg:'AES-256-GCM',kdf:'PBKDF2-SHA256',iter:pk.iter,salt:pk.salt,iv:b64e(iv),data:b64e(new Uint8Array(ct)),savedAt:nowTs()};
+  if(zip)env.zip=zip;
+  return env;
 }
-async function privDecrypt(env,pw){
-  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(env.iv)},await privKey(pw,b64d(env.salt),+env.iter||PRIV_ITER),b64d(env.data));
+async function decWith(pk,env){
+  let pt=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(env.iv)},pk.key,b64d(env.data)));
+  if(env.zip==='gzip'){
+    if(!window.DecompressionStream)throw new Error('nozip');
+    pt=await streamBytes(pt,new DecompressionStream('gzip'));
+  }
   return JSON.parse(td.decode(pt));
 }
 const isEnc=o=>!!(o&&o.app==='dfa-pipeline-crm'&&o.data&&o.salt&&o.iv);
+
+/* chave guardada no IndexedDB (não exportável) quando a base fica “aberta neste navegador” */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('dfa-pipeline-crm',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbDo(mode,fn){try{const db=await idb();return await new Promise((res,rej)=>{const t=db.transaction('k',mode),q=fn(t.objectStore('k'));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);});}catch(e){return null;}}
+const idbSet=(k,v)=>idbDo('readwrite',s=>s.put(v,k));
+const idbGet=k=>idbDo('readonly',s=>s.get(k));
+const idbDel=k=>idbDo('readwrite',s=>s.delete(k));
+function keepPK(){if(PK&&!NOPERSIST)idbSet('pk',PK);}
+
+/* busca a versão mais recente: nuvem (branch de dados) e, se não houver, o arquivo do site */
+async function fetchLatestEnv(){
+  const cloud=await cloudGet(false).catch(()=>null);
+  if(cloud&&cloud.env)return cloud;
+  const r=await fetch(PRIV_FILE+'?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('http '+r.status);
+  return {env:await r.json(),sha:null,from:'site'};
+}
 
 function privModal(force){
   MOD={priv:true};
   const open=isDemo()||force;
   const head='<div class="mh"><h3>'+ic('lock')+' Minha base privada</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div>';
   const body=open?`<div class="mb">
-    <p style="font-size:13px;line-height:1.6">A sua base fica publicada neste site <b>criptografada (AES-256)</b>. Sem a senha o arquivo é ilegível, e a senha nunca sai deste navegador. Quem visita o site vê só a demonstração.</p>
+    <p style="font-size:13px;line-height:1.6">A sua base fica guardada <b>criptografada (AES-256)</b>. Sem a senha ela é ilegível, e a senha nunca sai deste navegador. Quem visita o site vê só a demonstração.</p>
     <form data-form="privOpen" class="mf" style="padding:14px 0 0">
       <div class="fld"><label for="pw">Senha</label><input class="in" id="pw" name="pw" type="password" autocomplete="current-password" required></div>
       <div class="fld"><label class="ck"><input type="checkbox" name="remember" checked> Manter aberta neste navegador (desmarque em computador compartilhado)</label></div>
-      ${force&&!isDemo()?'<div class="warnbox">Isto substitui a base aberta neste navegador pela versão publicada no site. Alterações que você não salvou no site serão perdidas.</div>':''}
+      ${force&&!isDemo()?'<div class="warnbox">Isto substitui a base aberta neste navegador pela versão mais recente salva. Alterações que não foram salvas serão perdidas.</div>':''}
       <div id="privMsg" style="flex:1 1 100%"></div>
       <div class="mfoot"><button type="button" class="btn ghost l" data-act="privFile">${ic('upload')}Abrir de um arquivo…</button><button class="btn pri" type="submit" id="privGo">${ic('lock')}Abrir minha base</button></div>
     </form></div>`
   :`<div class="mb">
     <p style="font-size:13px">Base privada aberta: <b>${S.deals.length} negócios</b> · ${NOPERSIST?'só nesta aba (nada fica gravado no navegador)':'gravada neste navegador'}.</p>
-    <p class="faint" style="font-size:12px;margin-top:6px;line-height:1.6">As alterações ficam neste navegador. Para levá-las ao site (e abrir nos outros dispositivos), gere o arquivo criptografado abaixo e envie <code class="mono">base-privada.json</code> para a pasta <code class="mono">pipeline-vendas/</code> do repositório, substituindo o atual. Dá para trocar a senha aqui também.</p>
-    <form data-form="privSave" class="mf" style="padding:14px 0 0">
-      <div class="fld half"><label for="pw1">Senha</label><input class="in" id="pw1" name="pw" type="password" autocomplete="new-password" minlength="10" required></div>
+    ${syncSectionHTML()}
+    <details class="adv"><summary>Trocar a senha ou baixar uma cópia criptografada</summary>
+    <form data-form="privSave" class="mf" style="padding:12px 0 0">
+      <p class="faint" style="font-size:12px;line-height:1.6;flex:1 1 100%">Define a senha usada daqui em diante e baixa <code class="mono">base-privada.json</code>. ${syncOn()?'Com o salvamento automático ativo, a nuvem também passa a usar a nova senha; nos outros aparelhos, digite a nova senha quando for pedida.':'Sem o salvamento automático, envie o arquivo para a pasta <code class="mono">pipeline-vendas/</code> do repositório para atualizar o site.'}</p>
+      <div class="fld half"><label for="pw1">Nova senha</label><input class="in" id="pw1" name="pw" type="password" autocomplete="new-password" minlength="10" required></div>
       <div class="fld half"><label for="pw2">Repita a senha</label><input class="in" id="pw2" name="pw2" type="password" autocomplete="new-password" required></div>
       <div id="privMsg" style="flex:1 1 100%"></div>
-      <div class="mfoot"><button type="button" class="btn dan l" data-act="privLogout">${ic('x')}Sair e apagar deste navegador</button>
-        <button type="button" class="btn" data-act="privReload">${ic('refresh')}Recarregar a versão do site</button>
-        <button class="btn pri" type="submit" id="privGo">${ic('download')}Baixar base-privada.json</button></div>
-    </form></div>`;
-  modal(head+body);
+      <div class="mfoot"><button class="btn" type="submit" id="privGo">${ic('download')}Salvar senha e baixar arquivo</button></div>
+    </form></details>
+    <div class="mfoot" style="margin-top:14px"><button type="button" class="btn dan l" data-act="privLogout">${ic('x')}Sair e apagar deste navegador</button>
+      <button type="button" class="btn" data-act="privReload">${ic('refresh')}Recarregar a versão salva</button></div></div>`;
+  modal(head+body,open?'':'wide');
 }
 function privMsg(t,ok){const el=$('#privMsg');if(el)el.innerHTML='<div class="'+(ok?'alertln ok':'warnbox')+'" style="margin:0">'+esc(t)+'</div>';}
 function privBusy(on,label){const b=$('#privGo');if(b){b.disabled=on;if(label)b.lastChild.textContent=label;}}
 async function privOpen(pw,remember,fileText){
-  let env;
+  let got;
   privBusy(true,'Abrindo…');
-  try{
-    if(fileText!=null)env=JSON.parse(fileText);
-    else{const r=await fetch(PRIV_FILE+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('http '+r.status);env=await r.json();}
-  }catch(e){privBusy(false,'Abrir minha base');privMsg(fileText!=null?'Arquivo inválido.':'Não encontrei a base criptografada neste site ('+PRIV_FILE+'). Use “Abrir de um arquivo…”.');return;}
+  try{got=fileText!=null?{env:JSON.parse(fileText),sha:null,from:'arquivo'}:await fetchLatestEnv();}
+  catch(e){privBusy(false,'Abrir minha base');privMsg(fileText!=null?'Arquivo inválido.':'Não encontrei a base criptografada. Use “Abrir de um arquivo…”.');return;}
+  const env=got.env;
   if(!isEnc(env)){privBusy(false,'Abrir minha base');privMsg('Este arquivo não é uma base criptografada do CRM. Para backups comuns, use Configurações → Restaurar backup.');return;}
-  let o;
-  try{o=await privDecrypt(env,pw);}catch(e){privBusy(false,'Abrir minha base');privMsg('Senha incorreta.');const p=$('#pw');if(p){p.value='';p.focus();}return;}
+  let o,pk;
+  try{pk=await pkFor(env,pw);o=await decWith(pk,env);}
+  catch(e){privBusy(false,'Abrir minha base');privMsg(e&&e.message==='nozip'?'Este navegador não consegue descompactar a base. Atualize o navegador.':'Senha incorreta.');const p=$('#pw');if(p){p.value='';p.focus();}return;}
   if(!o||!Array.isArray(o.deals)||!Array.isArray(o.pipes)){privBusy(false,'Abrir minha base');privMsg('O conteúdo descriptografado não é uma base válida.');return;}
   snap();
   NOPERSIST=!remember;
-  if(NOPERSIST){try{localStorage.removeItem(KEY);}catch(e){}}
+  if(NOPERSIST){try{localStorage.removeItem(KEY);}catch(e){}idbDel('pk');}
   S=Object.assign(genDemo(),o,{v:1,demo:false,touched:true});
+  PK=pk;keepPK();
+  syncAdopt(got.sha,got.from==='nuvem');
   U=JSON.parse(JSON.stringify(UDEF));U.pipe=S.pipes[0].id;U.rp.pipe=S.pipes[0].id;U.fc.pipe='';
   SEL.clear();closeDrawer();closeModal();save();render();window.scrollTo(0,0);
-  toast('Base privada aberta: '+S.deals.length+' negócios'+(env.savedAt?' · versão de '+fD(env.savedAt)+' '+env.savedAt.slice(11,16):''),{icon:'lock'});
+  toast('Base privada aberta: '+S.deals.length+' negócios'+(env.savedAt?' · versão de '+fD(env.savedAt)+' '+env.savedAt.slice(11,16):'')+(got.from==='nuvem'?' (nuvem)':''),{icon:'lock'});
 }
 async function privSave(pw,pw2){
   if(pw.length<10)return privMsg('Use uma senha com pelo menos 10 caracteres.');
   if(pw!==pw2)return privMsg('As senhas não conferem.');
   privBusy(true,'Criptografando…');
-  const env=await privEncrypt(S,pw);
+  PK=await newPK(pw);keepPK();
+  const env=await encWith(PK,S);
   dl(PRIV_FILE,JSON.stringify(env),'application/json');
-  privBusy(false,'Baixar base-privada.json');
-  privMsg('Arquivo gerado. Envie base-privada.json para a pasta pipeline-vendas/ do repositório (Add files via upload), substituindo o atual.',true);
+  privBusy(false,'Salvar senha e baixar arquivo');
+  if(syncOn()){privMsg('Senha alterada. A nuvem já está sendo atualizada com a nova senha.',true);syncPushSoon(0);}
+  else privMsg('Senha alterada e arquivo gerado. Envie base-privada.json para a pasta pipeline-vendas/ do repositório para atualizar o site.',true);
 }
 Object.assign(A,{
   priv:()=>privModal(false),
   privReload:()=>privModal(true),
   privFile:()=>{const pw=($('#pw')||{}).value||'';if(!pw){privMsg('Digite a senha antes de escolher o arquivo.');return;}
     const rem=!!($('#modal [name=remember]')||{}).checked;pickFile('.json,application/json',txt=>privOpen(pw,rem,txt));},
-  privLogout:()=>confirmDlg('Sair da base privada? Ela será apagada deste navegador (a versão criptografada publicada no site continua lá). Alterações não enviadas ao site serão perdidas.',()=>{
+  privLogout:()=>confirmDlg('Sair da base privada? Ela será apagada deste navegador (a versão criptografada salva continua guardada).'+(syncOn()&&SM.dirty?' Atenção: há alterações que ainda não foram salvas na nuvem.':''),()=>{
     NOPERSIST=false;try{localStorage.removeItem(KEY);}catch(e){}
+    idbDel('pk');PK=null;syncReset();
     S=genDemo();U=JSON.parse(JSON.stringify(UDEF));UNDO=null;SEL.clear();closeDrawer();render();window.scrollTo(0,0);toast('Você saiu da base privada',{icon:'lock'});},'Sair e apagar')
 });
 document.addEventListener('submit',e=>{
@@ -2651,6 +2711,266 @@ document.addEventListener('submit',e=>{
   if(k==='privOpen')privOpen(f.elements.pw.value,f.elements.remember.checked,null);
   else privSave(f.elements.pw.value,f.elements.pw2.value);
 });
+
+/* =====================================================================
+   SALVAMENTO AUTOMÁTICO NA NUVEM (GitHub)
+   Cada alteração na base privada é criptografada no navegador e gravada,
+   alguns segundos depois, em pipeline-vendas/base-privada.json do branch
+   de dados (crm-dados) do repositório, pela API do GitHub, com um token
+   de acesso restrito ao repositório. Outros aparelhos baixam a versão
+   mais nova ao abrir a base ou voltar à aba; se dois aparelhos editarem
+   ao mesmo tempo, o CRM pergunta qual versão manter.
+   ===================================================================== */
+const SYNC_DEF={owner:'DashboardsForAll',repo:'dashboardsforall-site',branch:'crm-dados',base:'main',path:'pipeline-vendas/base-privada.json'};
+const MKEY='dfa-pipeline-crm-sync', SYNC_DELAY=4000;
+function loadMeta(){try{return Object.assign({sha:null,at:null,dirty:false},JSON.parse(localStorage.getItem(MKEY)||'{}'));}catch(e){return {sha:null,at:null,dirty:false};}}
+let SM=loadMeta(); /* {sha: versão da nuvem que este navegador conhece, at, dirty: alterações não enviadas} */
+function saveMeta(){if(NOPERSIST)return;try{localStorage.setItem(MKEY,JSON.stringify(SM));}catch(e){}}
+const SY={state:'off',msg:'',timer:null,busy:false,again:false,ver:0,lastPull:0,cur:null};
+const syncCfg=()=>Object.assign({},SYNC_DEF,S.sync||{});
+function syncOn(){return !isDemo()&&!!(S.sync&&S.sync.on&&S.sync.token);}
+const encPath=p=>String(p).split('/').map(encodeURIComponent).join('/');
+const repoPath=c=>'/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo);
+function stripSecrets(o){return o&&o.sync?Object.assign({},o,{sync:Object.assign({},o.sync,{token:'',on:false})}):o;}
+
+async function gh(method,path,body,auth){
+  const c=syncCfg(),h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  if(auth!==false&&c.token)h.Authorization='Bearer '+c.token;
+  if(body)h['Content-Type']='application/json';
+  const r=await fetch('https://api.github.com'+path,{method,headers:h,body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  let j=null;try{j=await r.json();}catch(e){}
+  return {status:r.status,ok:r.ok,json:j};
+}
+function ghErr(r){
+  const m=(r.json&&r.json.message)||'';
+  if(r.status===401)return new Error('Token do GitHub inválido ou expirado. Confira o token ou gere um novo.');
+  if(r.status===403&&/rate limit/i.test(m))return new Error('Limite de uso da API do GitHub atingido. Tente de novo em alguns minutos.');
+  if(r.status===403)return new Error('O token não tem permissão de escrita neste repositório (Contents: Read and write).');
+  if(r.status===404)return new Error('Repositório ou branch não encontrado. Confira se o token tem acesso a '+syncCfg().owner+'/'+syncCfg().repo+'.');
+  return new Error('O GitHub respondeu '+r.status+(m?': '+m:'')+'.');
+}
+/* lê a versão da nuvem: {env, sha, from:'nuvem'} ou null se ainda não existe */
+async function cloudGet(auth){
+  const c=syncCfg();
+  const r=await gh('GET',repoPath(c)+'/contents/'+encPath(c.path)+'?ref='+encodeURIComponent(c.branch),null,auth);
+  if(r.status===404)return null;
+  if(!r.ok)throw ghErr(r);
+  let txt;
+  if(r.json.encoding==='base64'&&r.json.content)txt=td.decode(b64d(r.json.content));
+  else{const d=await fetch(r.json.download_url,{cache:'no-store'});txt=await d.text();}
+  return {env:JSON.parse(txt),sha:r.json.sha,from:'nuvem'};
+}
+async function ensureBranch(){
+  const c=syncCfg(),R=repoPath(c);
+  let r=await gh('GET',R+'/git/ref/heads/'+encPath(c.branch));
+  if(r.ok)return {created:false};
+  if(r.status!==404)throw ghErr(r);
+  r=await gh('GET',R+'/git/ref/heads/'+encPath(c.base));
+  if(!r.ok)throw ghErr(r);
+  const p=await gh('POST',R+'/git/refs',{ref:'refs/heads/'+c.branch,sha:r.json.object.sha});
+  if(!p.ok&&p.status!==422)throw ghErr(p);
+  return {created:p.ok};
+}
+
+/* ---------- estado e indicador ---------- */
+function setSync(state,msg){SY.state=state;SY.msg=msg||'';renderSync();}
+function syncStatusText(){
+  const at=SM.at?' · '+fD(SM.at)+' '+SM.at.slice(11,16):'';
+  return {idle:'Tudo salvo na nuvem'+at,pending:'Alterações aguardando salvamento…',saving:'Salvando na nuvem…',
+    error:'Erro ao salvar: '+SY.msg,conflict:'Há uma versão mais nova na nuvem: escolha qual manter.',
+    locked:SY.msg||'Digite a senha da base para retomar o salvamento automático.',off:'Salvamento automático desativado.'}[SY.state]||'';
+}
+function renderSync(){
+  const el=$('#syncChip');if(!el)return;
+  if(isDemo()){el.hidden=true;return;}
+  el.hidden=false;
+  const at=SM.at?SM.at.slice(11,16):'';
+  const L={idle:['ok','Salvo'+(at?' · '+at:'')],pending:['wait','Não salvo'],saving:['wait','Salvando…'],error:['bad','Erro ao salvar'],
+    conflict:['bad','Conflito'],locked:['wait','Senha necessária'],off:['','Nuvem desativada']}[SY.state]||['',''];
+  el.className='syncchip '+L[0];el.innerHTML='<i></i>'+ic('cloud')+'<span>'+esc(L[1])+'</span>';
+  el.title=syncStatusText();
+  const st=$('#syncStatus');if(st)st.textContent=syncStatusText();
+}
+function syncReset(){clearTimeout(SY.timer);SY.timer=null;SM={sha:null,at:null,dirty:false};try{localStorage.removeItem(MKEY);}catch(e){}setSync('off');}
+function syncAdopt(sha,fromCloud){
+  clearTimeout(SY.timer);SY.timer=null;
+  SM={sha:fromCloud?sha:null,at:fromCloud?nowTs():null,dirty:false};saveMeta();
+  setSync(syncOn()?(PK?'idle':'locked'):'off');
+}
+function syncDirty(){
+  if(isDemo())return;
+  SY.ver++;SM.dirty=true;saveMeta();
+  if(!syncOn())return;
+  if(!PK){setSync('locked');return;}
+  setSync('pending');syncPushSoon(SYNC_DELAY);
+}
+function syncPushSoon(ms){clearTimeout(SY.timer);SY.timer=setTimeout(()=>{SY.timer=null;syncPush();},ms);}
+
+/* ---------- envio ---------- */
+async function syncPush(opts){
+  opts=opts||{};
+  clearTimeout(SY.timer);SY.timer=null;
+  if(!syncOn())return;
+  if(!PK){setSync('locked');return;}
+  if(SY.busy){SY.again=true;return;}
+  SY.busy=true;setSync('saving');
+  const ver=SY.ver;let conflictWith=null;
+  try{
+    const c=syncCfg();let sha=SM.sha;
+    if(!sha||opts.overwrite){
+      const ens=await ensureBranch();
+      const cur=await cloudGet(true);
+      if(cur&&!sha&&!ens.created&&!opts.overwrite)conflictWith=cur;
+      sha=cur?cur.sha:null;
+    }
+    if(!conflictWith){
+      const env=await encWith(PK,S);
+      const body={message:'CRM: base privada atualizada em '+fD(TODAY)+' '+hm(),content:b64e(te.encode(JSON.stringify(env))),branch:c.branch};
+      if(sha)body.sha=sha;
+      const r=await gh('PUT',repoPath(c)+'/contents/'+encPath(c.path),body);
+      if(r.ok){SM.sha=r.json.content.sha;SM.at=env.savedAt;if(SY.ver===ver)SM.dirty=false;saveMeta();setSync(SM.dirty?'pending':'idle');}
+      else if(r.status===409||(r.status===422&&/sha/i.test((r.json&&r.json.message)||'')))conflictWith=await cloudGet(true);
+      else throw ghErr(r);
+    }
+  }catch(e){setSync('error',e.message||String(e));}
+  finally{SY.busy=false;}
+  if(conflictWith)return syncConflict(conflictWith);
+  if(SY.again||(SM.dirty&&SY.state==='pending')){SY.again=false;syncPushSoon(1500);}
+}
+
+/* ---------- recebimento ---------- */
+async function syncPull(force){
+  if(!syncOn()||!PK||SY.busy||SY.timer||SY.state==='conflict')return;
+  if(!force&&Date.now()-SY.lastPull<20000)return;
+  SY.lastPull=Date.now();
+  let cur;try{cur=await cloudGet(true);}catch(e){setSync('error',e.message);return;}
+  if(!cur||cur.sha===SM.sha){if(SY.state==='error')setSync(SM.dirty?'pending':'idle');return;}
+  if(SM.dirty)return syncConflict(cur);
+  await adoptCloud(cur);
+}
+async function adoptCloud(cur){
+  if(!PK||cur.env.salt!==PK.salt){SY.cur=cur;setSync('locked','A senha foi trocada em outro aparelho: digite a nova senha.');return false;}
+  let o;try{o=await decWith(PK,cur.env);}catch(e){setSync('error','não foi possível abrir a versão da nuvem.');return false;}
+  S=Object.assign(genDemo(),o,{v:1,demo:false,touched:true});
+  SM={sha:cur.sha,at:cur.env.savedAt||nowTs(),dirty:false};saveMeta();
+  if(DR.open&&!getDeal(DR.id))closeDrawer();
+  save();render();setSync('idle');
+  toast('Base atualizada com a versão salva em outro aparelho',{icon:'refresh'});
+  return true;
+}
+function syncConflict(cur){
+  SY.cur=cur;setSync('conflict');
+  const when=cur&&cur.env&&cur.env.savedAt?fD(cur.env.savedAt)+' às '+cur.env.savedAt.slice(11,16):'outro momento';
+  MOD={priv:true};
+  modal('<div class="mh"><h3>'+ic('alert')+' Versão mais nova na nuvem</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div>'+
+    '<div class="mb" style="font-size:13px;line-height:1.6"><p>A base foi salva em outro aparelho em <b>'+esc(when)+'</b>, depois da última sincronização deste navegador, e aqui também há alterações que ainda não foram salvas.</p>'+
+    '<p style="margin-top:8px">Qual versão você quer manter?</p>'+
+    '<div class="mfoot" style="flex-wrap:wrap"><button class="btn" data-act="syncTakeCloud">'+ic('download')+'Usar a versão da nuvem (descarta as alterações daqui)</button>'+
+    '<button class="btn pri" data-act="syncKeepLocal">'+ic('upload')+'Manter a versão deste aparelho (substitui a da nuvem)</button></div></div>');
+}
+
+/* ---------- desbloqueio (sem chave na sessão) ---------- */
+function unlockModal(){
+  MOD={priv:true};
+  modal('<div class="mh"><h3>'+ic('lock')+' Retomar salvamento automático</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div>'+
+    '<div class="mb"><p style="font-size:13px;line-height:1.6">'+esc(SY.msg||'Digite a senha da base para que as alterações voltem a ser salvas na nuvem.')+'</p>'+
+    '<form data-form="syncUnlock" class="mf" style="padding:12px 0 0"><div class="fld"><label for="upw">Senha</label><input class="in" id="upw" name="pw" type="password" autocomplete="current-password" required></div>'+
+    '<div id="privMsg" style="flex:1 1 100%"></div><div class="mfoot"><button class="btn pri" type="submit" id="privGo">'+ic('lock')+'Continuar</button></div></form></div>');
+}
+async function syncUnlock(pw){
+  privBusy(true,'Verificando…');
+  let got;
+  try{got=SY.cur||await fetchLatestEnv();}catch(e){privBusy(false,'Continuar');privMsg('Não foi possível ler a base salva: '+(e.message||e));return;}
+  let pk;try{pk=await pkFor(got.env,pw);await decWith(pk,got.env);}catch(e){privBusy(false,'Continuar');privMsg('Senha incorreta.');return;}
+  PK=pk;keepPK();SY.cur=null;closeModal();
+  if(got.from==='nuvem'&&got.sha!==SM.sha){if(SM.dirty)return syncConflict(got);return adoptCloud(got);}
+  setSync(SM.dirty?'pending':'idle');if(SM.dirty)syncPush();
+}
+
+/* ---------- configuração ---------- */
+function syncSectionHTML(){
+  const c=syncCfg();
+  if(!syncOn())return `<div class="syncbox"><h4>${ic('cloud')} Salvamento automático na nuvem</h4>
+    <p>Ative para que cada alteração seja salva sozinha, criptografada, no seu repositório do GitHub. Os outros aparelhos recebem a versão mais nova ao abrir a base. Sem isso, é preciso baixar e enviar o arquivo manualmente.</p>
+    <ol class="steps"><li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> (token <i>fine-grained</i>).</li>
+      <li>Em <b>Repository access</b>, escolha <b>Only select repositories</b> e marque <b>${esc(c.repo)}</b>.</li>
+      <li>Em <b>Permissions → Repository permissions → Contents</b>, escolha <b>Read and write</b>. Gere o token e copie.</li></ol>
+    <form data-form="syncSetup" class="mf" style="padding:8px 0 0">
+      <div class="fld"><label for="tk">Token do GitHub</label><input class="in mono" id="tk" name="token" type="password" autocomplete="off" placeholder="github_pat_…" required></div>
+      ${PK?'':'<div class="fld"><label for="spw">Senha da base</label><input class="in" id="spw" name="pw" type="password" autocomplete="current-password" required><div class="help">Usada só neste navegador, para criptografar o que vai para a nuvem.</div></div>'}
+      <details class="adv" style="flex:1 1 100%"><summary>Avançado: repositório e branch</summary><div class="mf" style="padding:10px 0 0">
+        <div class="fld third"><label for="so">Dono</label><input class="in mono" id="so" name="owner" value="${esc(c.owner)}"></div>
+        <div class="fld third"><label for="sr">Repositório</label><input class="in mono" id="sr" name="repo" value="${esc(c.repo)}"></div>
+        <div class="fld third"><label for="sb">Branch de dados</label><input class="in mono" id="sb" name="branch" value="${esc(c.branch)}"></div></div></details>
+      <div id="syncMsg" style="flex:1 1 100%"></div>
+      <div class="mfoot"><button class="btn pri" type="submit" id="syncGo">${ic('cloud')}Ativar salvamento automático</button></div>
+    </form></div>`;
+  return `<div class="syncbox on"><h4>${ic('cloud')} Salvamento automático ativo</h4>
+    <p id="syncStatus">${esc(syncStatusText())}</p>
+    <p class="faint" style="font-size:11.5px">${esc(c.owner+'/'+c.repo)} · branch <span class="mono">${esc(c.branch)}</span> · <span class="mono">${esc(c.path)}</span></p>
+    <div id="syncMsg"></div>
+    <div class="mrow" style="margin-top:8px"><button class="btn sm" data-act="syncNow">${ic('upload')}Salvar agora</button><button class="btn sm" data-act="syncPullNow">${ic('download')}Buscar versão mais nova</button>
+      <button class="btn sm ghost" data-act="syncToken">Trocar token</button><button class="btn sm dan" data-act="syncOff">Desativar</button></div></div>`;
+}
+function syncMsg(t,ok){const el=$('#syncMsg');if(el)el.innerHTML='<div class="'+(ok?'alertln ok':'warnbox')+'" style="margin:6px 0 0">'+esc(t)+'</div>';}
+async function syncActivate(f){
+  const token=f.elements.token.value.trim();
+  if(!/^(github_pat_|ghp_|gho_|ghu_)[A-Za-z0-9_]{20,}$/.test(token))return syncMsg('Isso não parece um token do GitHub (começa com github_pat_).');
+  const b=$('#syncGo');if(b)b.disabled=true;
+  if(!PK){
+    const pw=f.elements.pw.value;let got,pk;
+    try{got=await fetchLatestEnv();pk=await pkFor(got.env,pw);await decWith(pk,got.env);}catch(e){if(b)b.disabled=false;return syncMsg('Senha incorreta ou base salva indisponível.');}
+    PK=pk;keepPK();
+  }
+  const owner=(f.elements.owner.value||SYNC_DEF.owner).trim(),repo=(f.elements.repo.value||SYNC_DEF.repo).trim(),branch=(f.elements.branch.value||SYNC_DEF.branch).trim();
+  S.sync={on:true,token,owner,repo,branch,base:SYNC_DEF.base,path:SYNC_DEF.path};
+  syncMsg('Conectando ao GitHub…',true);
+  const r=await gh('GET',repoPath(syncCfg()));
+  if(!r.ok){S.sync.on=false;S.sync.token='';save();if(b)b.disabled=false;setSync('off');return syncMsg(ghErr(r).message);}
+  SM.sha=null;SM.dirty=true;save();saveMeta();
+  await syncPush({first:true});
+  if(SY.state==='idle'){toast('Salvamento automático ativado',{icon:'cloud'});privModal(false);}
+  else if(SY.state!=='conflict'){const m=SY.msg;S.sync.on=false;S.sync.token='';save();setSync('off');if(b)b.disabled=false;syncMsg(m||'Não foi possível salvar na nuvem.');}
+}
+Object.assign(A,{
+  syncChip:()=>{if(SY.state==='locked')return unlockModal();if(SY.state==='conflict'&&SY.cur)return syncConflict(SY.cur);privModal(false);},
+  syncNow:()=>{syncPush();},
+  syncPullNow:async()=>{if(SM.dirty){syncMsg('Há alterações locais ainda não salvas. Use “Salvar agora” primeiro.');return;}SY.lastPull=0;await syncPull(true);if(SY.state==='idle')syncMsg('Você já está com a versão mais nova.',true);},
+  syncOff:()=>confirmDlg('Desativar o salvamento automático? As alterações passam a ficar só neste navegador, e o token é apagado desta base.',()=>{
+    snap();S.sync=Object.assign({},S.sync,{on:false,token:''});save();setSync('off');toast('Salvamento automático desativado',{icon:'cloud'});},'Desativar'),
+  syncToken:()=>formModal({title:'Trocar token do GitHub',fields:[{k:'token',label:'Novo token (github_pat_…)',type:'password',req:true}],ok:'Salvar token',
+    onSave:v=>{if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v.token)){toast('Isso não parece um token do GitHub',{icon:'alert'});return false;}
+      S.sync=Object.assign({},S.sync,{token:v.token,on:true});save();closeModal();syncPush();return true;}}),
+  syncTakeCloud:async()=>{const cur=SY.cur;closeModal();if(!cur)return;SM.dirty=false;await adoptCloud(cur);},
+  syncKeepLocal:()=>{closeModal();SY.cur=null;syncPush({overwrite:true});}
+});
+document.addEventListener('submit',e=>{
+  const k=e.target.dataset&&e.target.dataset.form;
+  if(k==='syncSetup')syncActivate(e.target);
+  else if(k==='syncUnlock')syncUnlock(e.target.elements.pw.value);
+});
+AFTER_COMMIT.push(syncDirty);
+document.addEventListener('visibilitychange',()=>{
+  if(!syncOn())return;
+  if(document.visibilityState==='hidden'){if(SM.dirty&&PK)syncPush();}
+  else syncPull(false);
+});
+setInterval(()=>{if(document.visibilityState==='visible')syncPull(false);},120000);
+window.addEventListener('beforeunload',e=>{if(syncOn()&&(SM.dirty||SY.busy)){e.preventDefault();e.returnValue='';}});
+
+/* =====================================================================
+   Inicialização
+   ===================================================================== */
+(async function init(){
+  const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))U.tab=h;
+  render();
+  if(isDemo())return;
+  const k=await idbGet('pk');PK=k&&k.key?k:null;
+  if(!syncOn()){setSync('off');return;}
+  if(!PK){setSync('locked');return;}
+  setSync(SM.dirty?'pending':'idle');
+  if(SM.dirty)syncPushSoon(800);else syncPull(true);
+})();
 </script>
 </body>
 </html>
