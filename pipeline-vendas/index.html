@@ -931,6 +931,14 @@ function actState(d){const a=nextAct(d);if(!a)return 'none';const n=dd(TODAY,a.d
 function lastTouch(d){let m=d.created;(IX.actsByDeal[d.id]||[]).forEach(a=>{if(a.done&&a.doneAt&&a.doneAt>m)m=a.doneAt;});return m;}
 const lineTot=l=>(+l.qty||0)*(+l.price||0)*(1-(+l.disc||0)/100)*(l.rec?(+l.months||12):1);
 const dealMRR=d=>sum((d.items||[]).filter(l=>l.rec),l=>(+l.qty||0)*(+l.price||0)*(1-(+l.disc||0)/100));
+/* valores do negócio: implantação (único) + mensal; o valor do negócio é o 1º ano = implantação + 12 × mensal.
+   Com produtos, os dois vêm dos itens; sem produtos, dos campos do próprio negócio. */
+const TERM=12;
+const hasItems=d=>!!(d.items&&d.items.length);
+const hasSplit=d=>hasItems(d)||d.setup!=null||d.monthly!=null;
+function dealSetup(d){return hasItems(d)?sum(d.items.filter(l=>!l.rec),lineTot):(+d.setup||0);}
+function dealMonthly(d){return hasItems(d)?dealMRR(d):(+d.monthly||0);}
+const splitValue=(s,m)=>Math.round((+s||0)+TERM*(+m||0));
 function syncValue(d){if(d.items&&d.items.length)d.value=Math.round(sum(d.items,lineTot));}
 const maxDisc=d=>Math.max(0,...(d.items||[]).map(l=>+l.disc||0));
 const needsApproval=d=>d.status==='open'&&maxDisc(d)>S.cfg.maxDisc&&!d.discOk;
@@ -1237,7 +1245,7 @@ function cardHTML(d){
     <div class="dtop"><div class="dt">${esc(d.title)}</div>${h?`<span class="hs h${h.lvl}" title="Score de saúde do negócio: ${h.v}/100">${h.v}</span>`:''}</div>
     ${sub?'<div class="dsub">'+esc(sub)+'</div>':''}
     ${d.tags.length?'<div class="dtags">'+d.tags.map(tagPill).join('')+'</div>':''}
-    <div class="dmeta"><span class="dval">${fR(d.value)}</span><span class="dicons">
+    <div class="dmeta"><span class="dval"${hasSplit(d)?' title="Implantação '+fR(dealSetup(d))+' + '+fR(dealMonthly(d))+'/mês"':''}>${fR(d.value)}</span><span class="dicons">
       ${needsApproval(d)?'<span class="pct" title="Desconto acima da política — aguarda aprovação">%</span>':''}
       ${as?`<button class="ast ${as}" data-act="openDeal" data-id="${d.id}" data-tab="acts" title="${esc(atitle)}" aria-label="${esc(atitle)}">${ic(as==='none'?'alert':ACT_T[na.type].i)}</button>`:''}
       ${avatar(u)}</span></div>
@@ -1245,8 +1253,8 @@ function cardHTML(d){
       ${rot?`<span class="neg" title="Acima do limite de ${st(d).s.rot} dias da etapa">${ic('clock')} parado ${dInStage(d)}d</span>`:`<span class="faint">${dInStage(d)}d na etapa</span>`}</div>
   </article>`;
 }
-const LCOLS=[['title','Negócio'],['org','Empresa'],['otype','Tipo de empresa'],['value','Valor','r'],['stage','Etapa'],['prob','Prob.','r'],['owner','Responsável'],['close','Previsão'],['next','Próxima atividade'],['health','Score','r'],['source','Origem'],['created','Criado'],['status','Status']];
-function sortVal(d,k){switch(k){case 'org':return norm((IX.org[d.orgId]||{}).name);case 'otype':return norm(orgTipo(d))||'~';case 'stage':return st(d).i;case 'prob':return prob(d);
+const LCOLS=[['title','Negócio'],['org','Empresa'],['otype','Tipo de empresa'],['value','Valor 1º ano','r'],['setup','Implantação','r'],['monthly','Mensal','r'],['stage','Etapa'],['prob','Prob.','r'],['owner','Responsável'],['close','Previsão'],['next','Próxima atividade'],['health','Score','r'],['source','Origem'],['created','Criado'],['status','Status']];
+function sortVal(d,k){switch(k){case 'org':return norm((IX.org[d.orgId]||{}).name);case 'otype':return norm(orgTipo(d))||'~';case 'setup':return dealSetup(d);case 'monthly':return dealMonthly(d);case 'stage':return st(d).i;case 'prob':return prob(d);
   case 'owner':return norm((IX.user[d.ownerId]||{}).name);case 'next':{const a=nextAct(d);return a?a.due:'9999';}case 'health':{const h=health(d);return h?h.v:-1;}
   case 'title':return norm(d.title);case 'close':return d.close||'9999';default:return d[k]==null?'':d[k];}}
 function listHTML(deals){
@@ -1269,13 +1277,13 @@ function listHTML(deals){
     deals.map(d=>{const o=IX.org[d.orgId],u=IX.user[d.ownerId],na=d.status==='open'?nextAct(d):null,h=health(d),as=d.status==='open'?actState(d):'';
       return `<tr class="${SEL.has(d.id)?'sel':''}"><td><input type="checkbox" data-ch="selOne" data-id="${d.id}"${chk(SEL.has(d.id))} aria-label="Selecionar"></td>
       <td><button class="lnk" data-act="openDeal" data-id="${d.id}">${esc(d.title)}</button>${d.tags.length?'<div class="dtags">'+d.tags.map(tagPill).join('')+'</div>':''}</td>
-      <td>${esc(o?o.name:'—')}</td><td class="nw">${esc((o&&o.tipo)||'—')}</td><td class="m r">${fR(d.value)}</td>
+      <td>${esc(o?o.name:'—')}</td><td class="nw">${esc((o&&o.tipo)||'—')}</td><td class="m r">${fR(d.value)}</td><td class="m r">${hasSplit(d)?fR(dealSetup(d)):'—'}</td><td class="m r">${hasSplit(d)?fR(dealMonthly(d)):'—'}</td>
       <td class="nw">${esc(st(d).s.name)}${rotting(d)?' <span class="bdg bC">parado '+dInStage(d)+'d</span>':''}${U.pipe?'':'<span class="sub2">'+esc(st(d).p.name)+'</span>'}</td>
       <td class="m r">${fP(prob(d),0)}</td><td><span class="who-cell">${avatar(u)}${esc(u?u.name:'—')}</span></td>
       <td class="m ${d.status==='open'&&d.close&&d.close<TODAY?'neg':''}">${fD(d.close)}</td>
       <td class="nw">${na?`<span class="${as==='over'?'neg':as==='today'?'pos':''}">${ic(ACT_T[na.type].i)} ${esc(na.subject)}</span><span class="sub2 mono">${rel(na.due)}</span>`:d.status==='open'?'<span class="am">'+ic('alert')+' nenhuma</span>':'—'}</td>
       <td class="r">${h?'<span class="hs h'+h.lvl+'">'+h.v+'</span>':'—'}</td>
-      <td class="nw">${esc(d.source)}</td><td class="m">${fD(d.created)}</td><td>${statusBadge(d)}</td></tr>`;}).join('')||'<tr><td colspan="14"><div class="empty">Nenhum negócio corresponde aos filtros.</div></td></tr>'}
+      <td class="nw">${esc(d.source)}</td><td class="m">${fD(d.created)}</td><td>${statusBadge(d)}</td></tr>`;}).join('')||'<tr><td colspan="16"><div class="empty">Nenhum negócio corresponde aos filtros.</div></td></tr>'}
   </tbody></table></div>`;
 }
 
@@ -1481,7 +1489,11 @@ function renderDrawer(){
   <div class="dwb">
     <aside>
       <div class="dsec"><h4>Resumo</h4>
-        <div class="kv"><label>Valor (R$)</label><input class="in sm mono" type="number" min="0" step="100" value="${Math.round(d.value)}" data-dch="value"${d.items&&d.items.length?' disabled title="Calculado a partir dos produtos"':''}></div>
+        ${(()=>{const it=hasItems(d),dis=it?' disabled title="Calculado a partir dos produtos"':'';
+          const sv=it?Math.round(dealSetup(d)):(d.setup!=null?d.setup:''),mv=it?Math.round(dealMonthly(d)):(d.monthly!=null?d.monthly:'');
+          return `<div class="kv"><label>Valor de implantação</label><input class="in sm mono" type="number" min="0" step="100" placeholder="R$" value="${sv}" data-dch="setup"${dis}></div>
+          <div class="kv"><label>Valor mensal</label><input class="in sm mono" type="number" min="0" step="50" placeholder="R$ por mês" value="${mv}" data-dch="monthly"${dis}></div>
+          <div class="kv"><span>Valor do 1º ano</span><span class="vv">${fR(d.value)}${hasSplit(d)?' <span class="faint">impl. + 12 × mensal</span>':''}</span></div>`;})()}
         <div class="kv"><label>Probabilidade (%)</label><input class="in sm mono" type="number" min="0" max="100" placeholder="${x.s.prob} (etapa)" value="${d.prob!=null?d.prob:''}" data-dch="prob"></div>
         <div class="kv"><label>Previsão</label><input class="in sm" type="date" value="${d.close||''}" data-dch="close"></div>
         <div class="kv"><label>Responsável</label><select class="in sm" data-dch="ownerId">${ownerOpts(d.ownerId)}</select></div>
@@ -1490,7 +1502,6 @@ function renderDrawer(){
         <div class="kv"><label>Etiquetas</label><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${d.tags.map(tagPill).join('')}<button class="btn sm ghost" data-act="editTags">${ic('tag')}editar</button></div></div>
         ${cfs}
         <div class="kv"><span>Ponderado</span><span class="vv">${fR(d.value*prob(d))}</span></div>
-        ${dealMRR(d)?`<div class="kv"><span>Receita recorrente</span><span class="vv">${fR(dealMRR(d))}/mês</span></div>`:''}
         <div class="kv"><span>Criado em</span><span class="vv">${fD(d.created)} · ${dd(d.created,TODAY)}d</span></div>
         <div class="kv"><span>Na etapa atual</span><span class="vv">${dInStage(d)} dias</span></div>
         <div class="kv"><span>Última interação</span><span class="vv">${rel(lastTouch(d))}</span></div>
@@ -1612,6 +1623,8 @@ function drHist(d){
 function setDealField(d,k,v){
   snap();let label='',from='',to='';
   if(k==='title'){v=String(v).trim();if(!v||v===d.title)return;d.title=v;}
+  else if(k==='setup'||k==='monthly'){const old=d[k];d[k]=v===''?null:Math.max(0,Math.round((+v||0)*100)/100);
+    from=old!=null?fR(old):'—';to=d[k]!=null?fR(d[k]):'—';label=k==='setup'?'Valor de implantação':'Valor mensal';d.value=splitValue(d.setup,d.monthly);}
   else if(k==='value'){from=fR(d.value);d.value=Math.max(0,Math.round(+v||0));to=fR(d.value);label='Valor';}
   else if(k==='prob'){from=d.prob!=null?d.prob+'%':'padrão';d.prob=v===''?null:clamp(Math.round(+v),0,100);to=d.prob!=null?d.prob+'%':'padrão da etapa';label='Probabilidade';}
   else if(k==='close'){from=fD(d.close);d.close=v||null;to=fD(d.close);label='Previsão de fechamento';}
@@ -1634,7 +1647,8 @@ function updItem(d,i,k,v){
 function proposal(d){
   const w=window.open('','_blank');if(!w){toast('Permita pop-ups para gerar a proposta.',{icon:'alert'});return;}
   const o=IX.org[d.orgId],pe=IX.person[d.personId],u=IX.user[d.ownerId];
-  const it=(d.items&&d.items.length)?d.items:[{name:'Escopo conforme negociação',qty:1,price:d.value,disc:0,rec:false,months:1}];
+  const it=hasItems(d)?d.items:hasSplit(d)?[{name:'Implantação',qty:1,price:+d.setup||0,disc:0,rec:false,months:1},{name:'Mensalidade',qty:1,price:+d.monthly||0,disc:0,rec:true,months:TERM}].filter(l=>l.price>0)
+    :[{name:'Escopo conforme negociação',qty:1,price:d.value,disc:0,rec:false,months:1}];
   const once=sum(it.filter(l=>!l.rec),lineTot),mrr=sum(it.filter(l=>l.rec),l=>l.qty*l.price*(1-(l.disc||0)/100)),tot=sum(it,lineTot);
   const num='NX-'+TODAY.slice(0,4)+'-'+String(d.id).replace(/\D/g,'').padStart(4,'0');
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Proposta ${num} — ${esc(d.title)}</title>
@@ -1954,6 +1968,9 @@ VIEWS.settings=function(){
     <div style="display:flex;gap:6px;flex-wrap:wrap"><select class="in" data-ch="setPipe" aria-label="Funil">${opts(S.pipes.map(x=>[x.id,x.name]),p.id)}</select><button class="btn" data-act="newPipe">${ic('plus')}Funil</button></div></div>
     <div class="kv" style="grid-template-columns:120px 1fr auto;max-width:560px"><label>Nome do funil</label><input class="in" value="${esc(p.name)}" data-ch="pipeName" aria-label="Nome do funil">
       <button class="btn sm dan" data-act="delPipe"${S.pipes.length<2?' disabled':''}>${ic('trash')}Excluir funil</button></div>
+    <div class="kv" style="grid-template-columns:120px 1fr 120px 1fr;max-width:560px"><label>Implantação padrão</label><input class="in mono" type="number" min="0" step="100" placeholder="R$" value="${p.defSetup!=null?p.defSetup:''}" data-ch="pipeDef" data-k="defSetup" aria-label="Implantação padrão">
+      <label style="padding-left:8px">Mensal padrão</label><input class="in mono" type="number" min="0" step="50" placeholder="R$ por mês" value="${p.defMonthly!=null?p.defMonthly:''}" data-ch="pipeDef" data-k="defMonthly" aria-label="Mensal padrão"></div>
+    <div class="hint" style="margin:2px 0 0">Valores sugeridos ao criar um negócio neste funil.</div>
     <div class="tw" style="margin-top:10px"><table class="tbl stbl"><thead><tr><th>Ordem</th><th>Etapa</th><th class="r">Probabilidade %</th><th class="r">Parado após (dias)</th><th class="r">Abertos</th><th></th></tr></thead><tbody>
     ${p.stages.map((s,i)=>`<tr><td class="nw"><button class="ibtn sm" data-act="stMove" data-i="${i}" data-n="-1"${i?'':' disabled'} aria-label="Subir">${ic('chevU')}</button> <button class="ibtn sm" data-act="stMove" data-i="${i}" data-n="1"${i<p.stages.length-1?'':' disabled'} aria-label="Descer">${ic('chevD')}</button></td>
       <td><input class="in sm" value="${esc(s.name)}" data-ch="stEdit" data-k="name" data-i="${i}" aria-label="Nome da etapa"></td>
@@ -2048,12 +2065,14 @@ const dlPeople=()=>'<datalist id="dl-people">'+S.people.map(p=>'<option value="'
 
 function newDealModal(pre){
   pre=pre||{};const pid=pre.pipeId||(pre.stageId&&IX.stage[pre.stageId]?IX.stage[pre.stageId].p.id:U.pipe);const p=IX.pipe[pid]||S.pipes[0];
+  const prevPipe=p;
   formModal({title:pre.leadId?'Qualificar lead → novo negócio':'Novo negócio',ok:pre.leadId?'Converter em negócio':'Criar negócio',fields:[
     {k:'title',label:'Título do negócio',req:true,value:pre.title||'',ph:'Ex.: Serra Azul · ERP + BI'},
     {k:'org',label:'Empresa',list:'dl-orgs',value:pre.org||'',ph:'Selecione ou digite uma nova',w:'half'},
     {k:'person',label:'Pessoa de contato',list:'dl-people',value:pre.person||'',ph:'Selecione ou digite',w:'half'},
-    {k:'value',label:'Valor (R$)',type:'number',min:0,step:'100',value:pre.value||'',w:'half'},
-    {k:'close',label:'Previsão de fechamento',type:'date',value:pre.close||addD(TODAY,30),w:'half'},
+    {k:'setup',label:'Valor de implantação (R$)',type:'number',min:0,step:'100',value:pre.setup!=null?pre.setup:(p.defSetup!=null?p.defSetup:''),w:'third'},
+    {k:'monthly',label:'Valor mensal (R$)',type:'number',min:0,step:'50',value:pre.monthly!=null?pre.monthly:(p.defMonthly!=null?p.defMonthly:''),w:'third'},
+    {k:'close',label:'Previsão de fechamento',type:'date',value:pre.close||addD(TODAY,30),w:'third'},
     {k:'pipeId',label:'Funil',type:'select',options:S.pipes.map(x=>[x.id,x.name]),value:p.id,w:'half'},
     {k:'stageId',label:'Etapa',type:'select',options:p.stages.map(s=>[s.id,s.name]),value:pre.stageId||p.stages[0].id,w:'half'},
     {k:'ownerId',label:'Responsável',type:'select',options:S.users.map(u=>[u.id,u.name]),value:pre.ownerId||U.owner||S.users[0].id,w:'half'},
@@ -2062,7 +2081,9 @@ function newDealModal(pre){
     {k:'tags',label:'Etiquetas',type:'tags',value:pre.tags||[]}],
     extra:dlOrgs()+dlPeople()+dlOtypes()+'<div id="dupwarn" style="flex:1 1 100%"></div>',
     onChange:(el)=>{
-      if(el.name==='pipeId'){const np=IX.pipe[el.value];$('#f_stageId').innerHTML=opts(np.stages.map(s=>[s.id,s.name]),np.stages[0].id);}
+      if(el.name==='pipeId'){const np=IX.pipe[el.value];$('#f_stageId').innerHTML=opts(np.stages.map(s=>[s.id,s.name]),np.stages[0].id);
+        /* troca os valores padrão do funil, se a pessoa ainda não tiver digitado outros */
+        [['setup','defSetup'],['monthly','defMonthly']].forEach(([f,k])=>{const inp=$('#f_'+f);if(inp&&(inp.value===''||+inp.value===(+MOD.prevPipe[k]||0)))inp.value=np[k]!=null?np[k]:'';});MOD.prevPipe=np;}
       if(el.name==='org'){const o=S.orgs.find(x=>norm(x.name)===norm(el.value));const ex=o?S.deals.filter(d=>d.orgId===o.id&&d.status==='open'):[];
         $('#dupwarn').innerHTML=ex.length?'<div class="warnbox">'+ic('alert')+' Possível duplicidade: esta empresa já tem '+ex.length+' negócio(s) aberto(s) — '+ex.slice(0,3).map(d=>'“'+esc(d.title)+'”').join(', ')+'.</div>':'';}
     },
@@ -2071,7 +2092,8 @@ function newDealModal(pre){
       snap();
       const o=findOrCreateOrg(v.org);const pe=findOrCreatePerson(v.person,o?o.id:null,pre.personExtra);
       if(o&&v.otype&&!o.tipo)o.tipo=addOrgType(v.otype);
-      const d={id:uid('d'),title:v.title,pipeId:v.pipeId,stageId:v.stageId,stageAt:TODAY,value:Math.max(0,+v.value||0),orgId:o?o.id:null,personId:pe?pe.id:null,
+      const setup=v.setup===''?null:Math.max(0,+v.setup||0),monthly=v.monthly===''?null:Math.max(0,+v.monthly||0);
+      const d={id:uid('d'),title:v.title,pipeId:v.pipeId,stageId:v.stageId,stageAt:TODAY,setup,monthly,value:splitValue(setup,monthly),orgId:o?o.id:null,personId:pe?pe.id:null,
         ownerId:v.ownerId,source:v.source,tags:v.tags,close:v.close||null,created:TODAY,status:'open',closedAt:null,lostReason:null,lostNote:'',prob:null,items:[],discOk:false,cf:{},hist:[]};
       hist(d,'created',{to:v.stageId,lead:!!pre.leadId});
       S.deals.push(d);buildIx();
@@ -2081,6 +2103,7 @@ function newDealModal(pre){
       closeModal();commit();openDeal(d.id,'acts');
       toast('Negócio criado: '+d.title,{undo:true,auto:ran});return true;
     }});
+  MOD.prevPipe=prevPipe;
 }
 function lostModal(d){
   formModal({title:'Marcar como perdido',ok:'Marcar como perdido',top:'<div class="warnbox">“'+esc(d.title)+'” · '+fR(d.value)+'</div>',fields:[
@@ -2371,7 +2394,7 @@ const A={
   webForm:()=>webFormModal(),
   rrAssign:()=>{const un=S.leads.filter(l=>l.status==='ativo'&&!l.ownerId);if(!un.length)return;snap();un.forEach(l=>l.ownerId=nextOwnerRR());commit();toast(un.length+' lead(s) distribuídos em rodízio entre '+S.users.length+' vendedores',{undo:true,icon:'refresh'});},
   qualify:t=>{const l=S.leads.find(x=>x.id===t.dataset.id);if(!l)return;
-    newDealModal({leadId:l.id,title:l.title,org:l.org,person:l.person,value:l.value,source:l.source,ownerId:l.ownerId||S.users[0].id,personExtra:{email:l.email,phone:l.phone,role:''},tags:l.size==='Grande'?['Enterprise']:l.size==='Pequena'?['PME']:[]});},
+    newDealModal({leadId:l.id,title:l.title,org:l.org,person:l.person,setup:l.value,source:l.source,ownerId:l.ownerId||S.users[0].id,personExtra:{email:l.email,phone:l.phone,role:''},tags:l.size==='Grande'?['Enterprise']:l.size==='Pequena'?['PME']:[]});},
   discardLead:t=>{const l=S.leads.find(x=>x.id===t.dataset.id);if(!l)return;snap();l.status='arquivado';S.leadStats.disc++;commit();toast('Lead descartado',{undo:true});},
   restoreLead:t=>{const l=S.leads.find(x=>x.id===t.dataset.id);if(!l)return;snap();l.status='ativo';S.leadStats.disc=Math.max(0,S.leadStats.disc-1);commit();toast('Lead restaurado',{undo:true});},
   actView:t=>{U.act.view=t.dataset.v;render();},
@@ -2413,8 +2436,8 @@ const A={
   delTpl:t=>{snap();S.templates=S.templates.filter(x=>x.id!==t.dataset.id);commit();toast('Modelo excluído',{undo:true});},
   editSeq:t=>seqModal(t.dataset.id?S.seqs.find(x=>x.id===t.dataset.id):null),
   delSeq:t=>{snap();S.seqs=S.seqs.filter(x=>x.id!==t.dataset.id);commit();toast('Cadência excluída',{undo:true});},
-  csvTemplate:()=>dlCSV('modelo-importacao-negocios',[['Título','Empresa','Contato','E-mail','Telefone','Valor','Funil','Etapa','Responsável','Previsão','Origem','Etiquetas'],
-    ['Exemplo Ltda · ERP Gestão','Exemplo Ltda','Maria Souza','maria@exemplo.example','(11) 90000-0000','48.000,00',S.pipes[0].name,S.pipes[0].stages[1].name,S.users[0].name,fD(addD(TODAY,30)),S.sources[0],'Quente']]),
+  csvTemplate:()=>dlCSV('modelo-importacao-negocios',[['Título','Empresa','Contato','E-mail','Telefone','Implantação','Mensal','Funil','Etapa','Responsável','Previsão','Origem','Etiquetas'],
+    ['Exemplo Ltda · ERP Gestão','Exemplo Ltda','Maria Souza','maria@exemplo.example','(11) 90000-0000','3.500,00','1.800,00',S.pipes[0].name,S.pipes[0].stages[1].name,S.users[0].name,fD(addD(TODAY,30)),S.sources[0],'Quente']]),
   importCsv:()=>pickFile('.csv,text/csv',importCSV),
   backup:()=>dl('crm-backup-'+TODAY+'.json',JSON.stringify(stripSecrets(S),null,1),'application/json'),
   restore:()=>pickFile('.json,application/json',txt=>{let o;try{o=JSON.parse(txt);}catch(e){toast('Arquivo inválido',{icon:'alert'});return;}
@@ -2459,6 +2482,7 @@ const C={
   prodOn:t=>{const p=S.products.find(x=>x.id===t.dataset.id);snap();p.on=t.checked;commit();},
   autoOn:t=>{const a=S.autos.find(x=>x.id===t.dataset.id);snap();a.on=t.checked;commit();toast('Automação '+(a.on?'ativada':'desativada'),{undo:true,icon:'zap'});},
   setPipe:t=>{SETP=t.value;render();},
+  pipeDef:t=>{const p=S.pipes.find(x=>x.id===SETP);snap();p[t.dataset.k]=t.value===''?null:Math.max(0,+t.value||0);commit();},
   pipeName:t=>{const p=S.pipes.find(x=>x.id===SETP);if(!t.value.trim())return;snap();p.name=t.value.trim();commit();},
   stEdit:t=>{const p=S.pipes.find(x=>x.id===SETP),s=p.stages[+t.dataset.i],k=t.dataset.k;snap();
     if(k==='name'){if(!t.value.trim())return render();s.name=t.value.trim();}else s[k]=clamp(Math.round(+t.value||0),0,k==='prob'?100:365);commit();},
@@ -2549,9 +2573,9 @@ const csvCell=v=>{v=String(v==null?'':v);return /[;"\n\r]/.test(v)?'"'+v.replace
 function dlCSV(name,rows){dl(name+'-'+TODAY+'.csv','﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'),'text/csv;charset=utf-8');}
 function exportDeals(ds,name){
   if(!ds.length){toast('Nada para exportar',{icon:'alert'});return;}
-  dlCSV(name,[['ID','Título','Empresa','Contato','E-mail','Telefone','Valor','Funil','Etapa','Probabilidade','Status','Responsável','Origem','Previsão','Criado em','Encerrado em','Motivo de perda','Etiquetas','Score','Tipo de empresa']].concat(ds.map(d=>{
+  dlCSV(name,[['ID','Título','Empresa','Contato','E-mail','Telefone','Valor 1º ano','Implantação','Mensal','Funil','Etapa','Probabilidade','Status','Responsável','Origem','Previsão','Criado em','Encerrado em','Motivo de perda','Etiquetas','Score','Tipo de empresa']].concat(ds.map(d=>{
     const o=IX.org[d.orgId],p=IX.person[d.personId],h=health(d);
-    return [d.id,d.title,o?o.name:'',p?p.name:'',p?p.email:'',p?p.phone:'',String(Math.round(d.value)).replace('.',','),(IX.pipe[d.pipeId]||{}).name,st(d).s.name,fP(prob(d),0),
+    return [d.id,d.title,o?o.name:'',p?p.name:'',p?p.email:'',p?p.phone:'',String(Math.round(d.value)),hasSplit(d)?String(dealSetup(d)).replace('.',','):'',hasSplit(d)?String(dealMonthly(d)).replace('.',','):'',(IX.pipe[d.pipeId]||{}).name,st(d).s.name,fP(prob(d),0),
       {open:'Aberto',won:'Ganho',lost:'Perdido'}[d.status],(IX.user[d.ownerId]||{}).name,d.source,fD(d.close),fD(d.created),d.closedAt?fD(d.closedAt):'',d.lostReason||'',d.tags.join(', '),h?h.v:'',o&&o.tipo||''];})));
   toast(ds.length+' negócio(s) exportados em CSV',{icon:'download'});
 }
@@ -2575,7 +2599,7 @@ function importCSV(text){
   const H=rows[0].map(h=>norm(h).replace(/[^a-z]/g,''));
   const col=(...names)=>{for(const n of names){const i=H.indexOf(n);if(i>=0)return i;}return -1;};
   const ix={title:col('titulo','negocio','title','nome'),org:col('empresa','organizacao','org','company'),person:col('contato','pessoa','person'),email:col('email'),phone:col('telefone','fone','phone','whatsapp'),
-    value:col('valor','value'),pipe:col('funil','pipeline'),stage:col('etapa','stage','fase'),owner:col('responsavel','vendedor','owner'),close:col('previsao','fechamento','dataprevista','close'),source:col('origem','source','canal'),tags:col('etiquetas','tags'),otype:col('tipodeempresa','tipoempresa','ramo','tipo')};
+    value:col('valor','value','valor1ºano','valor1oano'),setup:col('implantacao','valordeimplantacao','setup'),monthly:col('mensal','valormensal','mensalidade','monthly'),pipe:col('funil','pipeline'),stage:col('etapa','stage','fase'),owner:col('responsavel','vendedor','owner'),close:col('previsao','fechamento','dataprevista','close'),source:col('origem','source','canal'),tags:col('etiquetas','tags'),otype:col('tipodeempresa','tipoempresa','ramo','tipo')};
   if(ix.title<0&&ix.org<0){toast('Não encontrei as colunas “Título” ou “Empresa” no CSV',{icon:'alert'});return;}
   snap();let n=0;buildIx();
   rows.slice(1).forEach(r=>{
@@ -2588,7 +2612,7 @@ function importCSV(text){
     if(o&&g('otype')&&!o.tipo)o.tipo=addOrgType(g('otype'));
     const tags=g('tags').split(/[,|]/).map(x=>x.trim()).filter(Boolean);tags.forEach(t=>{if(!S.tags.some(x=>x.name===t))S.tags.push({name:t,color:'cinza'});});
     const src=g('source');if(src&&!S.sources.includes(src))S.sources.push(src);
-    const d={id:uid('d'),title,pipeId:pipe.id,stageId:stage.id,stageAt:TODAY,value:parseMoney(g('value')),orgId:o?o.id:null,personId:pe?pe.id:null,ownerId:owner.id,source:src||S.sources[0],
+    const d={id:uid('d'),title,pipeId:pipe.id,stageId:stage.id,stageAt:TODAY,...((g('setup')||g('monthly'))?{setup:parseMoney(g('setup')),monthly:parseMoney(g('monthly')),value:splitValue(parseMoney(g('setup')),parseMoney(g('monthly')))}:{value:parseMoney(g('value'))}),orgId:o?o.id:null,personId:pe?pe.id:null,ownerId:owner.id,source:src||S.sources[0],
       tags,close:parseDate(g('close')),created:TODAY,status:'open',closedAt:null,lostReason:null,lostNote:'',prob:null,items:[],discOk:false,cf:{},hist:[]};
     hist(d,'created',{to:stage.id});S.deals.push(d);n++;});
   commit();toast(n+' negócio(s) importados do CSV',{undo:true,icon:'upload'});
@@ -3023,9 +3047,13 @@ function mergePack(pay){
     pay[k].forEach(x=>{if(x&&x.id&&!have.has(x.id)){S[k].push(x);have.add(x.id);}});});
   ['sources','lostReasons','orgTypes'].forEach(k=>{if(!Array.isArray(pay[k]))return;S[k]=S[k]||[];pay[k].forEach(v=>{if(!S[k].includes(v))S[k].push(v);});});
   (pay.tags||[]).forEach(t=>{if(!S.tags.some(x=>x.name===t.name))S.tags.push(t);});
-  (pay.patch||[]).forEach(p=>{const o=(S[p.coll]||[]).find(x=>x.id===p.id);if(!o)return;
-    if(p.ifEq&&Object.keys(p.ifEq).some(k=>o[k]!==p.ifEq[k]))return;
-    Object.keys(p.set||{}).forEach(k=>{const cur=o[k];const empty=cur==null||cur===''||(Array.isArray(cur)&&!cur.length);if(!p.onlyIfEmpty||empty)o[k]=p.set[k];});});
+  (pay.patch||[]).forEach(p=>{
+    const arr=S[p.coll]||[];
+    const targets=p.where?arr.filter(x=>Object.keys(p.where).every(k=>x[k]===p.where[k])):arr.filter(x=>x.id===p.id);
+    targets.forEach(o=>{
+      if(p.ifEq&&Object.keys(p.ifEq).some(k=>o[k]!==p.ifEq[k]))return;
+      Object.keys(p.set||{}).forEach(k=>{const cur=o[k];const empty=cur==null||cur===''||(Array.isArray(cur)&&!cur.length);if(!p.onlyIfEmpty||empty)o[k]=p.set[k];});
+      if(p.hist&&Array.isArray(o.hist))o.hist.push(Object.assign({},p.hist));});});
 }
 
 /* =====================================================================
