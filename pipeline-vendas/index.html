@@ -875,10 +875,21 @@ Agência Farol Criativo|Serviços|Pequena|Curitiba|PR`.split('\n').map((l,i)=>{c
    Estado, persistência e regras de negócio
    ===================================================================== */
 const KEY='dfa-pipeline-crm-v1', UKEY='dfa-pipeline-crm-ui-v1';
-function loadState(){try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.v===1&&Array.isArray(o.deals))return o;}}catch(e){}return null;}
+/* lz-string 1.5.0 (MIT, pieroxy) — compacta a base gravada no navegador */
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+const LZTAG='\u0001LZ';
+function unpackState(raw){if(!raw)return null;return raw.startsWith(LZTAG)?LZString.decompressFromUTF16(raw.slice(LZTAG.length)):raw;}
+function loadState(){try{const raw=unpackState(localStorage.getItem(KEY));if(raw){const o=JSON.parse(raw);if(o&&o.v===1&&Array.isArray(o.deals))return o;}}catch(e){}return null;}
 let LAST_JSON=null; /* última serialização salva — reaproveitada pelo “desfazer” */
 let NOPERSIST=false; /* base privada aberta “só nesta aba”: não grava no navegador */
-function save(){LAST_JSON=JSON.stringify(S);if(NOPERSIST)return;try{localStorage.setItem(KEY,LAST_JSON);}catch(e){}}
+let SAVE_WARNED=false;
+/* grava compactado no navegador (cabe ~5x mais) e mantém uma cópia de segurança no IndexedDB (espaço bem maior) */
+function save(){LAST_JSON=JSON.stringify(S);if(NOPERSIST)return;
+  let ok=true;try{localStorage.setItem(KEY,LZTAG+LZString.compressToUTF16(LAST_JSON));}catch(e){ok=false;}
+  const j=LAST_JSON;try{idbDo('readwrite',s=>s.put({json:j,at:Date.now()},'state'));}catch(e){}
+  if(!ok&&!SAVE_WARNED){SAVE_WARNED=true;try{toast('Espaço do navegador cheio: a base foi salva só na cópia de segurança (IndexedDB). Libere espaço ou salve na nuvem.');}catch(e){}}}
+/* pede ao navegador para não apagar os dados sozinho */
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
 const UDEF={tab:'pipeline',pipe:'p1',view:'kanban',owner:'',f:{q:'',tag:'',otype:'',close:'',src:'',status:'open',rot:false,noact:false},
   sort:{k:'value',d:-1},act:{view:'list',when:'pend',types:[],q:''},calYM:CUR_YM,ct:'people',ctq:'',ctOtype:'',lq:'',lsrc:'',lst:'ativo',
   rp:{days:90,pipe:'p1'},fc:{pipe:'p1'}};
@@ -890,6 +901,8 @@ function saveUI(){try{localStorage.setItem(UKEY,JSON.stringify(U));}catch(e){}}
 /* Dados de demonstração nunca editados são regenerados a cada dia, para que datas,
    atrasos e previsões continuem relativos a hoje. Dados editados pelo visitante são mantidos. */
 let S=loadState();if(S&&!S.touched&&S.genAt!==TODAY)S=null;S=S||genDemo();
+/* recuperação: se só houver demonstração aqui mas existir cópia de segurança no IndexedDB, restaura */
+setTimeout(async()=>{try{if(S&&S.touched)return;const r=await idbDo('readonly',s=>s.get('state'));if(!r||!r.json)return;const o=JSON.parse(r.json);if(o&&o.v===1&&Array.isArray(o.deals)&&o.touched){S=o;save();render();toast('Base restaurada da cópia de segurança do navegador.');}}catch(e){}},300);
 LAST_JSON=JSON.stringify(S);
 let U=loadUI();
 if(U.pipe&&!S.pipes.find(p=>p.id===U.pipe))U.pipe=S.pipes[0].id; /* '' = todos os funis */
@@ -2733,7 +2746,7 @@ async function privOpen(pw,remember,fileText){
   if(!o||!Array.isArray(o.deals)||!Array.isArray(o.pipes)){privBusy(false,'Abrir minha base');privMsg('O conteúdo descriptografado não é uma base válida.');return;}
   snap();
   NOPERSIST=!remember;
-  if(NOPERSIST){try{localStorage.removeItem(KEY);}catch(e){}idbDel('pk');}
+  if(NOPERSIST){try{localStorage.removeItem(KEY);}catch(e){}idbDel('pk');idbDel('state');}
   S=Object.assign(genDemo(),o,{v:1,demo:false,touched:true});
   PK=pk;keepPK();
   syncAdopt(got.sha,got.from==='nuvem');
@@ -2759,7 +2772,7 @@ Object.assign(A,{
   privFile:()=>{const pw=($('#pw')||{}).value||'';if(!pw){privMsg('Digite a senha antes de escolher o arquivo.');return;}
     const rem=!!($('#modal [name=remember]')||{}).checked;pickFile('.json,application/json',txt=>privOpen(pw,rem,txt));},
   privLogout:()=>confirmDlg('Sair da base privada? Ela será apagada deste navegador (a versão criptografada salva continua guardada).'+(syncOn()&&SM.dirty?' Atenção: há alterações que ainda não foram salvas na nuvem.':''),()=>{
-    NOPERSIST=false;try{localStorage.removeItem(KEY);}catch(e){}
+    NOPERSIST=false;try{localStorage.removeItem(KEY);}catch(e){}idbDel('state');
     idbDel('pk');PK=null;syncReset();
     S=genDemo();U=JSON.parse(JSON.stringify(UDEF));UNDO=null;SEL.clear();closeDrawer();render();window.scrollTo(0,0);toast('Você saiu da base privada',{icon:'lock'});},'Sair e apagar')
 });
