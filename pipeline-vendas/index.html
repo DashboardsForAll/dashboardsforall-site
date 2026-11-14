@@ -499,6 +499,7 @@ body.dragmode *{cursor:grabbing!important}
       <button class="hsearch" data-act="search" aria-label="Buscar (Ctrl+K)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar no CRM…</span><kbd>Ctrl K</kbd></button>
       <label class="who" for="who">Visão
         <select class="in" id="who" data-ch="who"></select></label>
+      <button class="syncchip" id="diskChip" data-act="diskChip" hidden></button>
       <button class="syncchip" id="syncChip" data-act="syncChip" hidden></button>
       <button class="ibtn" id="privBtn" data-act="priv" title="Minha base privada (acesso com senha)" aria-label="Minha base privada"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
       <button class="ibtn" data-act="features" title="Recursos do CRM" aria-label="Recursos do CRM"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
@@ -623,6 +624,7 @@ const IC={
   save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/>',
   pinned:'<path d="M12 17v5M9 10.8V4h6v6.8l3 3.2H6z"/>',
   cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z"/>',
+  hdd:'<path d="M22 12H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/><path d="M6 16h.01M10 16h.01"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   percent:'<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'
 };
@@ -885,9 +887,10 @@ let NOPERSIST=false; /* base privada aberta “só nesta aba”: não grava no n
 let SAVE_WARNED=false;
 /* grava compactado no navegador (cabe ~5x mais) e mantém uma cópia de segurança no IndexedDB (espaço bem maior) */
 function save(){LAST_JSON=JSON.stringify(S);if(NOPERSIST)return;
-  let ok=true;try{localStorage.setItem(KEY,LZTAG+LZString.compressToUTF16(LAST_JSON));}catch(e){ok=false;}
+  let ok=true;try{localStorage.setItem(KEY,LZTAG+LZString.compressToUTF16(LAST_JSON));}catch(e){ok=false;try{localStorage.removeItem(KEY);}catch(e2){}}
+  try{diskSoon();}catch(e){}
   const j=LAST_JSON;try{idbDo('readwrite',s=>s.put({json:j,at:Date.now()},'state'));}catch(e){}
-  if(!ok&&!SAVE_WARNED){SAVE_WARNED=true;try{toast('Espaço do navegador cheio: a base foi salva só na cópia de segurança (IndexedDB). Libere espaço ou salve na nuvem.');}catch(e){}}}
+  if(!ok&&!SAVE_WARNED&&!(DK&&DK.state==='ok')){SAVE_WARNED=true;try{toast('Espaço do navegador cheio: a base foi salva na cópia de segurança (IndexedDB). Conecte a pasta do computador para ter espaço sobrando.');}catch(e){}}}
 /* pede ao navegador para não apagar os dados sozinho */
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
 const UDEF={tab:'pipeline',pipe:'p1',view:'kanban',owner:'',f:{q:'',tag:'',otype:'',close:'',src:'',status:'open',rot:false,noact:false},
@@ -902,7 +905,7 @@ function saveUI(){try{localStorage.setItem(UKEY,JSON.stringify(U));}catch(e){}}
    atrasos e previsões continuem relativos a hoje. Dados editados pelo visitante são mantidos. */
 let S=loadState();if(S&&!S.touched&&S.genAt!==TODAY)S=null;S=S||genDemo();
 /* recuperação: se só houver demonstração aqui mas existir cópia de segurança no IndexedDB, restaura */
-setTimeout(async()=>{try{if(S&&S.touched)return;const r=await idbDo('readonly',s=>s.get('state'));if(!r||!r.json)return;const o=JSON.parse(r.json);if(o&&o.v===1&&Array.isArray(o.deals)&&o.touched){S=o;save();render();toast('Base restaurada da cópia de segurança do navegador.');}}catch(e){}},300);
+/* (a recuperação pelo IndexedDB roda no início do init(), antes de ligar a nuvem) */
 LAST_JSON=JSON.stringify(S);
 let U=loadUI();
 if(U.pipe&&!S.pipes.find(p=>p.id===U.pipe))U.pipe=S.pipes[0].id; /* '' = todos os funis */
@@ -2719,6 +2722,8 @@ function privModal(force){
   :`<div class="mb">
     <p style="font-size:13px">Base privada aberta: <b>${S.deals.length} negócios</b> · ${NOPERSIST?'só nesta aba (nada fica gravado no navegador)':'gravada neste navegador'}.</p>
     ${syncSectionHTML()}
+    ${DISK_OK()?`<div class="syncbox${DK.h?' on':''}"><h4>${ic('hdd')} Pasta do computador</h4><p>${DK.h?'Gravando em <b>'+esc(DK.h.name)+'</b> a cada alteração.':'Escolha uma pasta (ex.: D:\\CRM-DFA) para gravar a base a cada alteração, sem limite de espaço.'}</p>
+      <div class="mrow" style="margin-top:8px"><button class="btn sm" data-act="diskChip">${ic('hdd')}${DK.h?'Ver pasta':'Escolher pasta…'}</button></div></div>`:''}
     <details class="adv"><summary>Trocar a senha ou baixar uma cópia criptografada</summary>
     <form data-form="privSave" class="mf" style="padding:12px 0 0">
       <p class="faint" style="font-size:12px;line-height:1.6;flex:1 1 100%">Define a senha usada daqui em diante e baixa <code class="mono">base-privada.json</code>. ${syncOn()?'Com o salvamento automático ativo, a nuvem também passa a usar a nova senha; nos outros aparelhos, digite a nova senha quando for pedida.':'Sem o salvamento automático, envie o arquivo para a pasta <code class="mono">pipeline-vendas/</code> do repositório para atualizar o site.'}</p>
@@ -2789,15 +2794,16 @@ document.addEventListener('submit',e=>{
    alguns segundos depois, em pipeline-vendas/base-privada.json do branch
    de dados (crm-dados) do repositório, pela API do GitHub, com um token
    de acesso restrito ao repositório. Outros aparelhos baixam a versão
-   mais nova ao abrir a base ou voltar à aba; se dois aparelhos editarem
-   ao mesmo tempo, o CRM pergunta qual versão manter.
+   mais nova ao abrir a base ou voltar à aba; se dois aparelhos (ou duas
+   abas) editarem ao mesmo tempo, o CRM COMBINA as duas versões sozinho
+   (mesclagem em 3 vias por id) e salva o resultado — sem perguntar nada.
    ===================================================================== */
 const SYNC_DEF={owner:'DashboardsForAll',repo:'dashboardsforall-site',branch:'crm-dados',base:'main',path:'pipeline-vendas/base-privada.json'};
 const MKEY='dfa-pipeline-crm-sync', SYNC_DELAY=4000;
 function loadMeta(){try{return Object.assign({sha:null,at:null,dirty:false},JSON.parse(localStorage.getItem(MKEY)||'{}'));}catch(e){return {sha:null,at:null,dirty:false};}}
 let SM=loadMeta(); /* {sha: versão da nuvem que este navegador conhece, at, dirty: alterações não enviadas} */
 function saveMeta(){if(NOPERSIST)return;try{localStorage.setItem(MKEY,JSON.stringify(SM));}catch(e){}}
-const SY={state:'off',msg:'',timer:null,busy:false,again:false,ver:0,lastPull:0,cur:null};
+const SY={state:'off',msg:'',timer:null,busy:false,again:false,ver:0,lastPull:0,cur:null,merging:false,mergeN:0};
 const syncCfg=()=>Object.assign({},SYNC_DEF,S.sync||{});
 function syncOn(){return !isDemo()&&!!(S.sync&&S.sync.on&&S.sync.token);}
 const encPath=p=>String(p).split('/').map(encodeURIComponent).join('/');
@@ -2852,6 +2858,7 @@ function syncStatusText(){
     locked:SY.msg||'Digite a senha da base para retomar o salvamento automático.',off:'Salvamento automático desativado.'}[SY.state]||'';
 }
 function renderSync(){
+  try{renderDisk();}catch(e){}
   const el=$('#syncChip');if(!el)return;
   if(isDemo()){el.hidden=true;return;}
   el.hidden=false;
@@ -2865,7 +2872,7 @@ function renderSync(){
 function syncReset(){clearTimeout(SY.timer);SY.timer=null;SM={sha:null,at:null,dirty:false};try{localStorage.removeItem(MKEY);}catch(e){}setSync('off');}
 function syncAdopt(sha,fromCloud){
   clearTimeout(SY.timer);SY.timer=null;
-  SM={sha:fromCloud?sha:null,at:fromCloud?nowTs():null,dirty:false};saveMeta();
+  SM={sha:fromCloud?sha:null,at:fromCloud?nowTs():null,dirty:false};saveMeta();if(fromCloud)syncBaseSet(sha,JSON.stringify(S));
   setSync(syncOn()?(PK?'idle':'locked'):'off');
 }
 function syncDirty(){
@@ -2895,11 +2902,12 @@ async function syncPush(opts){
       sha=cur?cur.sha:null;
     }
     if(!conflictWith){
+      const sent=JSON.stringify(S);
       const env=await encWith(PK,S);
       const body={message:'CRM: base privada atualizada em '+fD(TODAY)+' '+hm(),content:b64e(te.encode(JSON.stringify(env))),branch:c.branch};
       if(sha)body.sha=sha;
       const r=await gh('PUT',repoPath(c)+'/contents/'+encPath(c.path),body);
-      if(r.ok){SM.sha=r.json.content.sha;SM.at=env.savedAt;if(SY.ver===ver)SM.dirty=false;saveMeta();setSync(SM.dirty?'pending':'idle');}
+      if(r.ok){SM.sha=r.json.content.sha;SM.at=env.savedAt;if(SY.ver===ver)SM.dirty=false;saveMeta();syncBaseSet(SM.sha,sent);SY.mergeN=0;setSync(SM.dirty?'pending':'idle');}
       else if(r.status===409||(r.status===422&&/sha/i.test((r.json&&r.json.message)||'')))conflictWith=await cloudGet(true);
       else throw ghErr(r);
     }
@@ -2911,7 +2919,7 @@ async function syncPush(opts){
 
 /* ---------- recebimento ---------- */
 async function syncPull(force){
-  if(!syncOn()||!PK||SY.busy||SY.timer||SY.state==='conflict')return;
+  if(!syncOn()||!PK||SY.busy||SY.merging||SY.timer||SY.state==='conflict')return;
   if(!force&&Date.now()-SY.lastPull<20000)return;
   SY.lastPull=Date.now();
   let cur;try{cur=await cloudGet(true);}catch(e){setSync('error',e.message);return;}
@@ -2923,13 +2931,73 @@ async function adoptCloud(cur){
   if(!PK||cur.env.salt!==PK.salt){SY.cur=cur;setSync('locked','A senha foi trocada em outro aparelho: digite a nova senha.');return false;}
   let o;try{o=await decWith(PK,cur.env);}catch(e){setSync('error','não foi possível abrir a versão da nuvem.');return false;}
   S=Object.assign(genDemo(),o,{v:1,demo:false,touched:true});
-  SM={sha:cur.sha,at:cur.env.savedAt||nowTs(),dirty:false};saveMeta();
+  SM={sha:cur.sha,at:cur.env.savedAt||nowTs(),dirty:false};saveMeta();syncBaseSet(cur.sha,JSON.stringify(o));
   if(DR.open&&!getDeal(DR.id))closeDrawer();
   save();render();setSync('idle');
   toast('Base atualizada com a versão salva em outro aparelho',{icon:'refresh'});
   return true;
 }
-function syncConflict(cur){
+/* ---------- mesclagem automática (3 vias) ----------
+   base = versão da nuvem que este navegador conhecia; mine = esta aba; theirs = nuvem agora.
+   Listas com id (negócios, atividades, notas…) são combinadas item a item; campo editado
+   só de um lado fica com essa edição; editado dos dois lados, vale o deste aparelho. */
+function deq(a,b){if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
+  if(Array.isArray(a)!==Array.isArray(b))return false;
+  if(Array.isArray(a)){if(a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(!deq(a[i],b[i]))return false;return true;}
+  const ka=Object.keys(a);if(ka.length!==Object.keys(b).length)return false;for(const k of ka)if(!(k in b)||!deq(a[k],b[k]))return false;return true;}
+const mIsObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+const mIdArr=x=>Array.isArray(x)&&x.every(i=>mIsObj(i)&&i.id!=null);
+const mPrimArr=x=>Array.isArray(x)&&x.every(v=>v===null||typeof v!=='object');
+function m3(b,m,t){
+  if(deq(m,t))return m;
+  if(b!==undefined&&deq(m,b))return t;
+  if(b!==undefined&&deq(t,b))return m;
+  if(mIsObj(m)&&mIsObj(t))return m3obj(mIsObj(b)?b:{},m,t);
+  if(mIdArr(m)&&mIdArr(t)&&(m.length||t.length))return m3arr(Array.isArray(b)?b:[],m,t);
+  if(mPrimArr(m)&&mPrimArr(t)){const bs=new Set(Array.isArray(b)?b:[]),ms=new Set(m),ts=new Set(t),out=[];
+    for(const v of m.concat(t)){if(out.includes(v))continue;if(bs.has(v)&&(!ms.has(v)||!ts.has(v)))continue;out.push(v);}return out;}
+  return m;
+}
+function m3obj(b,m,t){const o={};
+  for(const k of new Set(Object.keys(m).concat(Object.keys(t)))){const inM=k in m,inT=k in t,inB=k in b;
+    if(inM&&inT)o[k]=m3(inB?b[k]:undefined,m[k],t[k]);
+    else if(inM){if(inB&&deq(m[k],b[k]))continue;o[k]=m[k];}
+    else{if(inB&&deq(t[k],b[k]))continue;o[k]=t[k];}}
+  return o;}
+function m3arr(b,m,t){const B=new Map(),M=new Map(m.map(x=>[x.id,x])),T=new Map(t.map(x=>[x.id,x])),out=[];
+  b.forEach(x=>{if(mIsObj(x)&&x.id!=null)B.set(x.id,x);});
+  for(const x of m){if(T.has(x.id))out.push(m3(B.get(x.id),x,T.get(x.id)));else if(B.has(x.id)&&deq(x,B.get(x.id)))continue;else out.push(x);}
+  for(const x of t){if(M.has(x.id))continue;if(B.has(x.id)&&deq(x,B.get(x.id)))continue;out.push(x);}
+  return out;}
+function mergeStates(base,mine,theirs){const r=m3obj(mIsObj(base)?base:{},mine,theirs);r.sync=mine.sync;r.touched=true;r.demo=false;return r;}
+const noSync=o=>{const c=Object.assign({},o);delete c.sync;delete c.touched;delete c.demo;return c;};
+function syncBaseSet(sha,json){if(!sha||NOPERSIST)return;SY.base={sha,json};idbSet('syncBase',{sha,json});}
+async function syncBaseGet(sha){
+  if(SY.base&&SY.base.sha===sha)return SY.base.json;
+  const b=await idbGet('syncBase');return b&&b.sha===sha?b.json:null;}
+function syncConflict(cur){return syncAutoMerge(cur);}
+async function syncAutoMerge(cur){
+  if(!cur||SY.merging)return;
+  if(!PK||cur.env.salt!==PK.salt){SY.cur=cur;setSync('locked','A senha foi trocada em outro aparelho: digite a nova senha.');return;}
+  if(++SY.mergeN>6){SY.mergeN=0;return syncConflictModal(cur);}
+  SY.merging=true;
+  try{
+    let theirs;try{theirs=await decWith(PK,cur.env);}catch(e){setSync('error','não foi possível abrir a versão da nuvem.');return;}
+    let base=null;try{const bj=await syncBaseGet(SM.sha);base=bj?JSON.parse(bj):null;}catch(e){}
+    const mine=JSON.parse(JSON.stringify(S));
+    const merged=mergeStates(base,mine,theirs);
+    const same=deq(noSync(merged),noSync(theirs));
+    S=Object.assign(genDemo(),merged,{v:1,demo:false,touched:true});
+    SM.sha=cur.sha;SM.at=cur.env.savedAt||SM.at;SM.dirty=!same;saveMeta();syncBaseSet(cur.sha,JSON.stringify(theirs));
+    if(DR.open&&!getDeal(DR.id))closeDrawer();
+    if(MOD&&MOD.priv&&$('#modal .mh h3')&&/Versão mais nova/.test($('#modal .mh h3').textContent))closeModal();
+    save();render();
+    if(same){SY.mergeN=0;setSync('idle');}
+    else{SY.ver++;setSync('pending');syncPushSoon(300);
+      if(!deq(noSync(merged),noSync(mine)))toast('Alterações feitas em outro aparelho/aba foram somadas às daqui e salvas',{icon:'refresh'});}
+  }finally{SY.merging=false;}
+}
+function syncConflictModal(cur){
   SY.cur=cur;setSync('conflict');
   const when=cur&&cur.env&&cur.env.savedAt?fD(cur.env.savedAt)+' às '+cur.env.savedAt.slice(11,16):'outro momento';
   MOD={priv:true};
@@ -3028,7 +3096,112 @@ document.addEventListener('visibilitychange',()=>{
   else syncPull(false);
 });
 setInterval(()=>{if(document.visibilityState==='visible')syncPull(false);},120000);
+window.addEventListener('storage',e=>{
+  if(NOPERSIST||e.storageArea!==localStorage)return;
+  if(e.key===MKEY){if(!SY.busy&&!SY.merging){SM=loadMeta();renderSync();}return;}
+  if(e.key!==KEY||!e.newValue)return;
+  try{const o=JSON.parse(unpackState(e.newValue));if(!o||o.v!==1||!Array.isArray(o.deals)||!o.touched)return;
+    if(isDemo()&&o.demo!==false)return;
+    S=o;LAST_JSON=e.newValue.startsWith(LZTAG)?JSON.stringify(S):e.newValue;
+    if(DR.open&&!getDeal(DR.id))closeDrawer();
+    render();renderSync();
+  }catch(err){}
+});
 window.addEventListener('beforeunload',e=>{if(syncOn()&&(SM.dirty||SY.busy)){e.preventDefault();e.returnValue='';}});
+
+/* =====================================================================
+   PASTA DO COMPUTADOR (ex.: D:\\CRM-DFA) — banco de dados local
+   Depois de escolhida uma vez, a pasta recebe a base a cada alteração:
+   base-privada.json (sempre a versão atual) e historico/base-privada-AAAA-MM-DD.json
+   (uma cópia por dia). Os arquivos vão criptografados com a mesma senha da base,
+   então podem ser reabertos em “Minha base privada → Abrir de um arquivo…”.
+   ===================================================================== */
+var DK=null;
+DK={h:null,state:'none',msg:'',timer:null,busy:false,again:false,at:null,asked:false};
+const DISK_OK=()=>typeof window.showDirectoryPicker==='function'||!!(DK&&DK.h);
+function diskSet(st,msg){DK.state=st;DK.msg=msg||'';renderDisk();}
+function renderDisk(){
+  const el=$('#diskChip');if(!el)return;
+  if(isDemo()||NOPERSIST||!DISK_OK()){el.hidden=true;return;}
+  el.hidden=false;
+  const L={none:['wait','Conectar pasta do PC'],perm:['wait','Reativar pasta do PC'],ok:['ok','PC'+(DK.at?' · '+DK.at.slice(11,16):'')],err:['bad','Erro na pasta do PC']}[DK.state]||['',''];
+  el.className='syncchip '+L[0];el.innerHTML='<i></i>'+ic('hdd')+'<span>'+esc(L[1])+'</span>';
+  el.title={none:'Clique para escolher uma pasta no computador (ex.: D:\\CRM-DFA) onde a base será gravada a cada alteração.',
+    perm:'O navegador pede para confirmar o acesso à pasta '+(DK.h?DK.h.name:'')+'. Clique para liberar.',
+    ok:'Gravado na pasta '+(DK.h?DK.h.name:'')+' do computador'+(DK.at?' às '+DK.at.slice(11,16):''),
+    err:'Não consegui gravar na pasta: '+DK.msg}[DK.state]||'';
+  const st=$('#diskStatus');if(st)st.textContent=el.title;
+}
+async function diskInit(){
+  if(!DISK_OK()){renderDisk();return;}
+  const h=await idbGet('diskDir');
+  if(!h||typeof h.queryPermission!=='function'){diskSet('none');return;}
+  DK.h=h;
+  let p='prompt';try{p=await h.queryPermission({mode:'readwrite'});}catch(e){}
+  diskSet(p==='granted'?'ok':'perm');
+  if(p==='granted')diskSoon(800);
+}
+async function diskPick(){
+  try{
+    const h=await window.showDirectoryPicker({id:'dfa-crm',mode:'readwrite',startIn:'documents'});
+    DK.h=h;await idbSet('diskDir',h);diskSet('ok');await diskWrite();
+    if(DK.state==='ok')toast('Pasta “'+h.name+'” conectada: a base é gravada nela a cada alteração',{icon:'check'});
+    if(MOD&&MOD.disk)diskModal();
+  }catch(e){if(!e||e.name!=='AbortError')toast('Não foi possível usar a pasta: '+((e&&e.message)||e),{icon:'alert'});}
+}
+async function diskGrant(){
+  if(!DK.h)return diskPick();
+  try{const p=await DK.h.requestPermission({mode:'readwrite'});if(p==='granted'){diskSet('ok');await diskWrite();}else diskSet('perm');}
+  catch(e){diskSet('perm');}
+}
+function diskSoon(ms){
+  if(!DK||!DK.h||DK.state!=='ok'||isDemo()||NOPERSIST)return;
+  clearTimeout(DK.timer);DK.timer=setTimeout(()=>{DK.timer=null;diskWrite();},ms==null?1500:ms);
+}
+async function diskFile(dir,name,text){const fh=await dir.getFileHandle(name,{create:true});const w=await fh.createWritable();await w.write(text);await w.close();}
+async function diskWrite(){
+  if(!DK.h||isDemo()||NOPERSIST)return;
+  if(!PK){diskSet('err','abra a base com a senha para gravar.');return;}
+  if(DK.busy){DK.again=true;return;}
+  DK.busy=true;clearTimeout(DK.timer);DK.timer=null;
+  try{
+    const env=await encWith(PK,S);const txt=JSON.stringify(env);
+    await diskFile(DK.h,'base-privada.json',txt);
+    const hist=await DK.h.getDirectoryHandle('historico',{create:true});
+    await diskFile(hist,'base-privada-'+isoD(new Date())+'.json',txt);
+    DK.at=env.savedAt||nowTs();diskSet('ok');
+  }catch(e){
+    if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))diskSet('perm');
+    else diskSet('err',(e&&e.message)||String(e));
+  }finally{DK.busy=false;}
+  if(DK.again){DK.again=false;diskSoon(600);}
+}
+function diskModal(){
+  MOD={priv:true,disk:true};
+  const name=DK.h?DK.h.name:'';
+  modal('<div class="mh"><h3>'+ic('hdd')+' Pasta do computador</h3><button class="ibtn sm" data-act="closeModal" aria-label="Fechar">'+ic('x')+'</button></div>'+
+    '<div class="mb" style="font-size:13px;line-height:1.6">'+
+    (DK.h?'<p>Pasta conectada: <b>'+esc(name)+'</b>. A cada alteração o CRM grava <code class="mono">base-privada.json</code> nela e uma cópia do dia em <code class="mono">historico/</code> (criptografadas com a sua senha).</p>'
+         :'<p>Escolha uma pasta no seu computador — por exemplo <b>D:\\CRM-DFA</b> — para servir de banco de dados da base. Ela recebe a base a cada alteração, sem limite de espaço do navegador.</p>')+
+    '<p id="diskStatus" class="faint" style="margin-top:6px"></p>'+
+    '<p class="faint" style="font-size:11.5px;margin-top:6px">Quando o navegador perguntar, escolha <b>Permitir em todas as visitas</b> para não precisar confirmar de novo. Para reabrir a base a partir da pasta: Minha base privada → Abrir de um arquivo…</p>'+
+    '<div class="mfoot" style="flex-wrap:wrap">'+
+    (DK.h?'<button class="btn sm dan l" data-act="diskOff">'+ic('x')+'Desconectar</button><button class="btn sm" data-act="diskPick">Trocar pasta</button>'+
+      (DK.state==='ok'?'<button class="btn sm pri" data-act="diskNow">'+ic('save')+'Gravar agora</button>':'<button class="btn sm pri" data-act="diskGrant">'+ic('check')+'Liberar acesso à pasta</button>')
+         :'<button class="btn pri" data-act="diskPick">'+ic('hdd')+'Escolher pasta…</button>')+
+    '</div></div>');
+  renderDisk();
+}
+Object.assign(A,{
+  diskChip:()=>{if(DK.state==='none')return diskPick();if(DK.state==='perm')return diskGrant();diskModal();},
+  diskPick:()=>diskPick(),
+  diskGrant:()=>diskGrant(),
+  diskNow:async()=>{await diskWrite();if(DK.state==='ok')toast('Base gravada na pasta do computador',{icon:'check'});diskModal();},
+  diskOff:()=>confirmDlg('Desconectar a pasta do computador? Os arquivos já gravados continuam lá; só param de ser atualizados.',()=>{
+    DK.h=null;idbDel('diskDir');diskSet('none');toast('Pasta do computador desconectada',{icon:'hdd'});},'Desconectar')
+});
+/* se o navegador pedir confirmação da pasta, o primeiro clique na página já libera (o Chrome mostra a pergunta) */
+document.addEventListener('pointerdown',()=>{if(DK&&DK.state==='perm'&&!DK.asked&&!isDemo()){DK.asked=true;diskGrant();}},true);
 
 /* =====================================================================
    PACOTES DE IMPORTAÇÃO — listas novas (ex.: planilhas de prospecção)
@@ -3074,7 +3247,10 @@ function mergePack(pay){
    ===================================================================== */
 (async function init(){
   const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))U.tab=h;
+  try{if(!(S&&S.touched)){const r=await idbGet('state');const o=r&&r.json?JSON.parse(r.json):null;
+    if(o&&o.v===1&&Array.isArray(o.deals)&&o.touched){S=o;save();toast('Base restaurada da cópia de segurança do navegador.');}}}catch(e){}
   render();
+  diskInit();
   if(isDemo())return;
   const k=await idbGet('pk');PK=k&&k.key?k:null;
   if(syncOn()){
