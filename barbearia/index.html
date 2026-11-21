@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DFA · Gestão da Barbearia</title>
-<meta name="description" content="Dashboards For All: sistema de gestão para barbearia: agenda, caixa, comissões, DRE, precificação, estoque e assinaturas.">
+<meta name="description" content="Dashboards For All: sistema de gestão para barbearia: agenda, caixa, comissões, reserva para as contas fixas, DRE, precificação, estoque e assinaturas.">
 <meta name="theme-color" content="#0C1420">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -505,6 +505,19 @@ body.dragmode *{cursor:grabbing!important}
 .kv{grid-template-columns:1fr auto}
 @media (max-width:900px){.c8{grid-column:span 12}.c2{grid-column:span 6}}
 
+
+/* ---------- reserva ---------- */
+.resbig{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.resbig .lab{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.resbig .val{font-size:20px;font-weight:600;margin-top:2px}
+.resbig .r{text-align:right}.resbig .r .val{font-size:15px;color:var(--text);margin-top:6px}
+.resnext{margin-top:12px}
+.resstrip{display:flex;align-items:center;gap:12px;padding:12px 16px;border-color:rgba(232,185,74,.4);background:linear-gradient(90deg,rgba(232,185,74,.08),transparent 60%);font-size:13px}
+.resstrip .grow{flex:1}.resstrip b.mono{color:var(--ambar)}
+.rs-ic{width:32px;height:32px;border-radius:8px;background:rgba(232,185,74,.15);display:grid;place-items:center;color:var(--ambar);flex:0 0 32px}
+.c5{grid-column:span 5}.c7{grid-column:span 7}
+@media (max-width:600px){.tbl.dre td,.tbl.dre th{padding-left:6px;padding-right:6px;font-size:11.5px}}
+@media (max-width:900px){.c5,.c7{grid-column:span 12}.resstrip{flex-wrap:wrap}}
 /* ---------- agenda ---------- */
 .cal{--tw:52px;display:flex;flex-direction:column}
 .cal-head{display:grid;grid-template-columns:var(--tw) repeat(var(--n),minmax(0,1fr));border-bottom:1px solid var(--line);padding-bottom:8px}
@@ -638,16 +651,16 @@ const FORMAS=['Pix','Crédito','Débito','Dinheiro','Assinatura'];
 const FORMA_COR={'Pix':COLORS.teal,'Crédito':COLORS.aco,'Débito':COLORS.roxo,'Dinheiro':COLORS.verde,'Assinatura':COLORS.ambar};
 
 /* ---------------- dados de demonstração (gerados para os últimos 3 meses) ---------------- */
+const RES_HOR=35;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function buildDemo(){
   const R=mulberry(20261120),pick=(arr,w)=>{let r=R()*sum(w),i=0;while(r>w[i]){r-=w[i];i++;}return arr[i];};
-  const S={v:1,demo:true,cfg:{nome:'Barbearia Modelo',imposto:.06,meta:35000,comAssin:18,taxas:{'Pix':0,'Crédito':.032,'Débito':.015,'Dinheiro':0,'Assinatura':0}},
-    barbeiros:[{id:'b1',nome:'Rafael',com:.45},{id:'b2',nome:'Diego',com:.45},{id:'b3',nome:'Bruno',com:.40}],
+  const S={v:1,demo:true,cfg:{nome:'Barbearia Modelo',imposto:.06,meta:30000,comAssin:20,whats:false,taxas:{'Pix':0,'Crédito':.032,'Débito':.015,'Dinheiro':0,'Assinatura':0}},
+    barbeiros:[{id:'b1',nome:'Rafael',com:0,dono:true},{id:'b2',nome:'Diego',com:.5},{id:'b3',nome:'Bruno',com:.5}],
     servicos:[{id:'s1',nome:'Corte',preco:50,min:30,material:2.5},{id:'s2',nome:'Barba',preco:35,min:20,material:3},{id:'s3',nome:'Corte + barba',preco:70,min:50,material:5},
       {id:'s4',nome:'Pezinho',preco:15,min:10,material:.5},{id:'s5',nome:'Sobrancelha',preco:20,min:10,material:.5},{id:'s6',nome:'Platinado',preco:150,min:90,material:38},{id:'s7',nome:'Hidratação',preco:35,min:20,material:7}],
-    produtos:[{id:'p1',nome:'Pomada modeladora',custo:22,preco:45,min:8,ini:14},{id:'p2',nome:'Óleo para barba',custo:18,preco:40,min:6,ini:10},{id:'p3',nome:'Shampoo para barba',custo:16,preco:38,min:5,ini:8},
-      {id:'p4',nome:'Cerveja long neck',custo:5,preco:12,min:24,ini:48},{id:'p5',nome:'Refrigerante lata',custo:3,preco:7,min:12,ini:36}],
-    assinantes:[],assinPag:[],atend:[],compras:[],contas:[],vales:[],comPag:{}};
+    produtos:[{id:'p1',nome:'Pomada efeito matte',custo:22,preco:45,min:8,ini:12},{id:'p2',nome:'Pomada efeito brilho',custo:20,preco:42,min:5,ini:10},{id:'p3',nome:'Pomada em pó',custo:18,preco:38,min:4,ini:8}],
+    assinantes:[],assinPag:[],atend:[],compras:[],contas:[],vales:[],comPag:{},reserva:[]};
   const NOMES=['Lucas','Gabriel','Mateus','Pedro','Gustavo','João','Felipe','Thiago','André','Caio','Vitor','Leonardo','Henrique','Rodrigo','Eduardo','Marcelo','Daniel','Ricardo','Fábio','Renan','Igor','Samuel','Otávio','Murilo','Wesley','Alex','Danilo','Paulo','Sérgio','Vinícius'];
   const SOB=['Silva','Souza','Oliveira','Santos','Lima','Costa','Pereira','Almeida','Ribeiro','Martins','Rocha','Araújo','Barros','Freitas','Moreira'];
   const ASS=[['Carlos Mendes','Corte ilimitado',119,5],['Bruno Teixeira','Corte + barba ilimitado',189,5],['Rafael Duarte','Corte ilimitado',119,10],['Tiago Nunes','Corte + barba ilimitado',189,10],
@@ -659,13 +672,13 @@ function buildDemo(){
   const stock={};S.produtos.forEach(p=>stock[p.id]=p.ini);
   months.forEach((ym,mi)=>{
     /* compras de produtos no início do mês */
-    const reposicao={p1:mi===2?6:12,p2:6,p3:4,p4:36,p5:18};
+    const reposicao={p1:mi===2?4:12,p2:6,p3:6};
     Object.entries(reposicao).forEach(([pid,q])=>{const p=S.produtos.find(x=>x.id===pid);S.compras.push({id:'c'+(++n),date:ym+'-02',produtoId:pid,qtd:q,custo:p.custo});stock[pid]+=q;});
     const tot=sum(Object.entries(reposicao),([pid,q])=>q*S.produtos.find(x=>x.id===pid).custo);
     /* contas do mês */
-    [['Aluguel',3000,5],['Pró-labore',3500,5],['App de agenda',99,8],['Internet',120,10],['Contabilidade',450,10],['Energia elétrica',590+Math.round(R()*80),15],['Água',150+Math.round(R()*30),18],['Marketing (Instagram)',300,20],['Produtos de limpeza',180,25]]
+    [['Aluguel',3000,5],['Retirada do dono',3500,5],['App de agenda',99,8],['Internet',120,10],['Contabilidade',450,10],['Energia elétrica',590+Math.round(R()*80),15],['Água',150+Math.round(R()*30),18],['Marketing (Instagram)',300,20],['Produtos de limpeza',180,25]]
       .forEach(([d,v,dia])=>{const venc=ym+'-'+pad(dia);S.contas.push({id:'k'+(++n),desc:d,cat:'Despesa fixa',valor:v,venc,pago:venc<TODAY&&!(ym===CUR_YM&&d==='Energia elétrica')});});
-    S.contas.push({id:'k'+(++n),desc:'Compra de produtos para revenda',cat:'Compra de produtos',valor:tot,venc:ym+'-12',pago:ym+'-12'<TODAY});
+    S.contas.push({id:'k'+(++n),desc:'Compra de pomadas',cat:'Compra de produtos',valor:tot,venc:ym+'-12',pago:ym+'-12'<TODAY});
     /* assinaturas */
     S.assinantes.forEach(a=>{const date=ym+'-'+pad(a.dia);if(date>TODAY)return;const pend=ym===CUR_YM&&(a.id==='a9'||a.id==='a11');S.assinPag.push({id:'q'+(++n),assinId:a.id,ym,valor:a.valor,pago:!pend,date});});
     /* vales */
@@ -687,13 +700,23 @@ function buildDemo(){
           itens.push({t:'s',id:sid,qtd:1,preco:sv.preco});
           if(sid==='s1'&&R()<.12)itens.push({t:'s',id:'s5',qtd:1,preco:20});
           forma=pick(['Pix','Crédito','Débito','Dinheiro'],[.38,.27,.22,.13]);}
-        const r=R();let pid=null;if(r<.09)pid=R()<.6?'p4':'p5';else if(r<.12)pid='p1';else if(r<.135)pid='p2';else if(r<.145)pid='p3';
-        if(pid&&stock[pid]>0){const p=S.produtos.find(x=>x.id===pid);const q=pid==='p4'&&R()<.3?2:1;if(stock[pid]>=q){itens.push({t:'p',id:pid,qtd:q,preco:p.preco});stock[pid]-=q;if(forma==='Assinatura')forma='Pix';}}
+        const r=R();let pid=null;if(r<.025)pid='p1';else if(r<.04)pid='p2';else if(r<.05)pid='p3';
+        if(pid&&stock[pid]>0){const p=S.produtos.find(x=>x.id===pid);const q=1;if(stock[pid]>=q){itens.push({t:'p',id:pid,qtd:q,preco:p.preco});stock[pid]-=q;if(forma==='Assinatura')forma='Pix';}}
         S.atend.push({id:'t'+(++n),date:d,hora:pad(h)+':'+pad(mm),cliente,barbeiroId:bid,itens,forma,desconto:0,assinante:!!assin});
       }
     }
     if(ym!==CUR_YM)['b1','b2','b3'].forEach(b=>S.comPag[ym+'|'+b]=ymAdd(ym,1)+'-05');
   });
+  /* contas fixas do próximo mês (ainda em aberto) */
+  {const ym=ymAdd(CUR_YM,1);[['Aluguel',3000,5],['Retirada do dono',3500,5],['App de agenda',99,8],['Internet',120,10],['Contabilidade',450,10],['Energia elétrica',640,15],['Água',165,18],['Marketing (Instagram)',300,20],['Produtos de limpeza',180,25]]
+    .forEach(([d,v,dia])=>S.contas.push({id:'k'+(++n),desc:d,cat:'Despesa fixa',valor:v,venc:ym+'-'+pad(dia),pago:false}));}
+  /* reserva diária para as contas fixas: simulação desde o início do histórico */
+  {const ini=months[0]+'-01';const fx=S.contas.filter(c=>c.cat==='Despesa fixa');
+    let saldo=sum(fx.filter(c=>c.venc>=ini&&c.venc<=addD(ini,9)),c=>num(c.valor));
+    S.reserva.push({id:'r'+(++n),date:ini,valor:saldo,obs:'Saldo inicial separado para as contas'});
+    for(let d=ini;d<TODAY;d=addD(d,1)){
+      if(pD(d).getDay()!==0){const abertas=fx.filter(c=>c.venc>=d);const r=reservaTaxa(d,saldo,abertas).taxa;if(r>0){const v=Math.ceil(r/5)*5;saldo+=v;S.reserva.push({id:'r'+(++n),date:d,valor:v,obs:'Guardado do caixa do dia'});}}
+      fx.filter(c=>c.venc===d&&c.pago).forEach(c=>{const v=Math.min(saldo,num(c.valor));if(v>0){saldo-=v;S.reserva.push({id:'r'+(++n),date:d,valor:-v,obs:'Pagamento: '+c.desc,contaId:c.id});}});}}
   /* agenda: hoje e próximas duas semanas */
   S.agenda=[];S.gen=TODAY;
   const nowD=new Date(),nowM=nowD.getHours()*60+nowD.getMinutes();
@@ -713,7 +736,7 @@ function buildDemo(){
             if(R()<.05)ag.status='Faltou';
             else{ag.status='Concluído';let forma=assin?'Assinatura':pick(['Pix','Crédito','Débito','Dinheiro'],[.38,.27,.22,.13]);
               const itens=sv.map(id=>({t:'s',id,qtd:1,preco:assin?0:S.servicos.find(x=>x.id===id).preco}));
-              const r=R();let pid=null;if(r<.09)pid=R()<.6?'p4':'p5';else if(r<.12)pid='p1';
+              const r=R();let pid=null;if(r<.025)pid='p1';else if(r<.04)pid='p2';else if(r<.05)pid='p3';
               if(pid&&stock[pid]>0){itens.push({t:'p',id:pid,qtd:1,preco:S.produtos.find(x=>x.id===pid).preco});stock[pid]--;if(forma==='Assinatura')forma='Pix';}
               const at={id:'t'+(++n),date:d,hora:hm,cliente:cli,barbeiroId:b.id,itens,forma,desconto:0,assinante:!!assin};S.atend.push(at);ag.atendId=at.id;}
           }else if(k===0&&t-60<=nowM)ag.status=R()<.85?'Confirmado':'Agendado';
@@ -725,8 +748,8 @@ function buildDemo(){
 }
 
 /* ---------------- estado ---------------- */
-const KEY='dfa-barbearia-v2',UKEY='dfa-barbearia-ui-v2';
-function validBase(o){return !!(o&&o.v===1&&['barbeiros','servicos','produtos','atend','contas','agenda'].every(k=>Array.isArray(o[k])));}
+const KEY='dfa-barbearia-v3',UKEY='dfa-barbearia-ui-v3';
+function validBase(o){return !!(o&&o.v===1&&['barbeiros','servicos','produtos','atend','contas','agenda','reserva'].every(k=>Array.isArray(o[k])));}
 let S=(()=>{try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(validBase(o)&&o.gen===TODAY)return o;}catch(e){}return buildDemo();})();
 let U=Object.assign({tab:'agenda',agView:'dia',mes:CUR_YM},(()=>{try{return JSON.parse(localStorage.getItem(UKEY)||'{}')||{};}catch(e){return {};}})());U.dia=pD(TODAY).getDay()===0?addD(TODAY,1):TODAY;U.mes=CUR_YM;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -745,7 +768,7 @@ function calcA(a){
   const bruto=Math.max(0,vServ+vProd-num(a.desconto));
   const taxa=bruto*num(S.cfg.taxas[a.forma]);
   const b=IX.b[a.barbeiroId]||{com:0};
-  const com=a.assinante?num(S.cfg.comAssin)*serv.length:Math.max(0,vServ-num(a.desconto))*num(b.com);
+  const com=!num(b.com)?0:a.assinante?num(S.cfg.comAssin)*serv.length:Math.max(0,vServ-num(a.desconto))*num(b.com);
   const mat=sum(serv,i=>num((IX.s[i.id]||{}).material)*num(i.qtd||1));
   const cmv=sum(prod,i=>num((IX.p[i.id]||{}).custo)*num(i.qtd||1));
   return {vServ,vProd,bruto,taxa,imp:bruto*num(S.cfg.imposto),com,mat,cmv};
@@ -786,6 +809,7 @@ function assinStats(ym){const M=month(ym);return S.assinantes.map(a=>{const us=M
   const pg=S.assinPag.find(p=>p.assinId===a.id&&p.ym===ym);const custo=sum(us,x=>x.com+x.mat)+num(a.valor)*num(S.cfg.imposto);
   return {a,usos:us.length,pg,custo,res:num(a.valor)-custo};});}
 function alerts(){const out=[],E=estoque();
+  {const R=reserva();if(R.falta>0&&nowMin()>=17*60)out.push({lvl:'am',t:'Guardar '+fR(R.falta)+' hoje para as contas fixas',s:R.prox?'próxima conta: '+R.prox.c.desc+' em '+fD(R.prox.c.venc):'reserva das contas fixas',act:'guardar'});}
   S.agenda.filter(g=>g.date===TODAY&&agAtrasado(g)).forEach(g=>out.push({lvl:'am',t:'Sem baixa · '+g.hora+' '+g.cliente,s:agServ(g)+' com '+((IX.b[g.barbeiroId]||{}).nome||'')+': concluir ou marcar falta',act:'openAg',id:g.id}));
   S.contas.filter(c=>!c.pago&&dd(TODAY,c.venc)<=7).sort((a,b)=>a.venc.localeCompare(b.venc)).forEach(c=>out.push({lvl:c.venc<TODAY?'db':'am',t:(c.venc<TODAY?'Conta vencida · ':'Conta a vencer · ')+c.desc,s:fR2(num(c.valor))+' · '+fD(c.venc)+' ('+rel(c.venc)+')',act:'pagar',id:c.id}));
   S.produtos.forEach(p=>{const x=E[p.id];if(x.sit!=='OK')out.push({lvl:x.sit==='Sem estoque'?'db':'am',t:'Repor estoque · '+p.nome,s:'saldo '+x.saldo+' · mínimo '+p.min,act:'newCompra',id:p.id});});
@@ -880,7 +904,7 @@ function renderLedger(){const M=month(CUR_YM),P=month(ymAdd(CUR_YM,-1)),hoje=S.a
     ['Agenda de hoje','cr',fN(S.agenda.filter(g=>g.date===TODAY&&g.status!=='Cancelado').length)+' horários',fR(diaInfo(TODAY).total)+' previstos no dia','agenda'],
     ['Agendado em 7 dias','az',fRs(sum([...Array(7)].map((_,k)=>addD(TODAY,k)),x=>diaInfo(x).prev)),'horários já marcados','agenda'],
     ['Resultado previsto do mês',M.resProj<0?'db':'cr',fRs(M.resProj),'projeção pelo ritmo até hoje','financeiro'],
-    ['Contas em 7 dias',venc.some(c=>c.venc<TODAY)?'db':venc.length?'am':'cr',fN(venc.length),fR(sum(venc,c=>num(c.valor)))+' a pagar','financeiro'],
+    (R=>['Guardar hoje',R.falta?'am':'cr',R.falta?fR(R.falta):'feito','p/ contas fixas'+(R.prox?' · '+R.prox.c.desc+' '+fDs(R.prox.c.venc):''),'financeiro'])(reserva()),
     ['Estoque para repor',rep?'db':'cr',fN(rep),'produtos abaixo do mínimo','estoque']];
   $('#ledger').innerHTML=c.map(x=>'<button class="lc" data-act="tab" data-tab="'+x[4]+'"><div class="lab">'+x[0]+'</div><div class="val '+x[1]+'">'+x[2]+'</div><div class="sub">'+esc(x[3])+'</div></button>').join('');}
 const TABS=[['agenda','Agenda','cal'],['painel','Painel','chart'],['caixa','Caixa do dia','wallet'],['comissoes','Comissões','users'],['financeiro','Financeiro','dollar'],['servicos','Serviços e preços','tag'],['estoque','Estoque','box'],['assinaturas','Assinaturas','crown']];
@@ -925,6 +949,7 @@ VIEWS.caixa=()=>{const at=S.atend.filter(a=>a.date===U.dia).sort((a,b)=>a.hora.l
     ${kpi('Total do dia',fR2(tot),fN(at.length)+' atendimentos · ticket '+fR2(pagos.length?sum(pagos,x=>x.bruto)/pagos.length:0),'cr',null,'c2')}
     ${['Pix','Crédito','Débito','Dinheiro'].map(f=>{const v=sum(xs.filter(x=>x.a.forma===f),x=>x.bruto);return kpi(f,fR2(v),f==='Dinheiro'?'confira com a gaveta':num(S.cfg.taxas[f])?'taxa '+fP(S.cfg.taxas[f])+' · líquido '+fR2(v*(1-num(S.cfg.taxas[f]))):'sem taxa','',null,'c2');}).join('')}
     ${kpi('Líquido após taxas',fR2(tot-tax),'taxas da maquininha '+fR2(tax),'az',null,'c2')}
+    ${U.dia===TODAY?(R=>`<div class="card resstrip"><div class="rs-ic">${ic('save')}</div><div class="grow"><b>Reserva das contas fixas.</b> ${R.falta?'Do caixa de hoje ('+fR(tot)+'), separe <b class="mono">'+fR(R.falta)+'</b>'+(tot?' ('+fP(R.falta/tot,0)+' do que entrou até agora)':'')+' para pagar as próximas contas em dia'+(R.prox?': '+esc(R.prox.c.desc)+' vence em '+fD(R.prox.c.venc)+'.':'.'):'O valor de hoje já foi guardado ('+fR(R.guardadoHoje)+'). Reserva atual: '+fR(R.saldo)+'.'}</div><button class="btn sm ${R.falta?'pri':''}" data-act="guardar">${ic('save')}Registrar</button></div>`)(reserva()):''}
     <div class="card c8" style="padding:0"><div class="sh"><h2>Atendimentos</h2><span class="faint" style="font-size:12px">clique no cliente para editar</span></div>
       <div class="tw" style="border:none;border-radius:0 0 11px 11px"><table class="tbl"><thead><tr><th>Hora</th><th>Cliente</th><th>Barbeiro</th><th>Serviços e produtos</th><th>Pagamento</th><th class="r">Valor</th><th class="r">Taxa</th><th class="r">Comissão</th><th></th></tr></thead><tbody>
       ${xs.map(x=>{const a=x.a;return `<tr><td class="m">${esc(a.hora)}</td><td><button class="lnk" data-act="editAtend" data-id="${a.id}">${esc(a.cliente||'—')}</button>${a.assinante?' '+bdg('Assinatura'):''}</td><td>${esc((IX.b[a.barbeiroId]||{}).nome||'—')}</td>
@@ -942,13 +967,13 @@ VIEWS.caixa=()=>{const at=S.atend.filter(a=>a.date===U.dia).sort((a,b)=>a.hora.l
 /* ---------------- COMISSÕES ---------------- */
 VIEWS.comissoes=()=>{const rows=comissoes(U.mes);
   $('#main').innerHTML=`<div class="tbar">${monthSel()}<span class="faint" style="font-size:12px">Comissão sobre os serviços (produtos não comissionam) · atendimento de assinante paga ${fR2(num(S.cfg.comAssin))} fixo</span><span class="grow"></span><button class="btn" data-act="newVale">${ic('plus')}Vale / adiantamento</button></div>
-  <div class="grid">${rows.map((r,i)=>`<div class="card c4"><div class="hrow"><div><h2>${esc(r.b.nome)}</h2><p class="sub">${fN(r.n)} atendimentos · ${r.assin} de assinantes</p></div>${r.pago?bdg('Pago'):bdg('Pendente')}</div>
+  <div class="grid">${rows.map((r,i)=>`<div class="card c4"><div class="hrow"><div><h2>${esc(r.b.nome)}${r.b.dono?' <span class="bdg bP">dono</span>':''}</h2><p class="sub">${fN(r.n)} atendimentos · ${r.assin} de assinantes</p></div>${r.b.dono?'':r.pago?bdg('Pago'):bdg('Pendente')}</div>
     <div class="kv"><label>Faturamento em serviços</label><span class="mono">${fR2(r.fatServ)}</span></div>
-    <div class="kv"><label>% de comissão</label><span><input class="in sm mono" type="number" step="1" min="0" max="100" value="${+(num(r.b.com)*100).toFixed(1)}" data-com="${r.b.id}" style="width:74px"> %</span></div>
+    ${r.b.dono?'<div class="kv"><label>% de comissão</label><span class="faint" style="font-size:12px">dono · o faturamento dele fica com a barbearia</span></div>':`<div class="kv"><label>% de comissão</label><span><input class="in sm mono" type="number" step="1" min="0" max="100" value="${+(num(r.b.com)*100).toFixed(1)}" data-com="${r.b.id}" style="width:74px"> %</span></div>`}
     <div class="kv"><label>Comissão do mês</label><span class="mono">${fR2(r.com)}</span></div>
     <div class="kv"><label>(−) Vales</label><span class="mono neg">${fR2(r.vales)}</span></div>
     <div class="kv"><label><b>A pagar</b></label><span class="mono"><b style="font-size:16px">${fR2(r.pagar)}</b></span></div>
-    <div style="margin-top:12px">${r.pago?'<span class="faint" style="font-size:12px">pago em '+fD(r.pago)+'</span> <button class="btn sm ghost" data-act="comPag" data-id="'+r.b.id+'">Desfazer</button>':'<button class="btn sm pri" data-act="comPag" data-id="'+r.b.id+'">'+ic('check')+'Marcar como pago</button>'}</div></div>`).join('')}
+    <div style="margin-top:12px">${r.b.dono?'<span class="faint" style="font-size:12px">sem comissão a pagar</span>':r.pago?'<span class="faint" style="font-size:12px">pago em '+fD(r.pago)+'</span> <button class="btn sm ghost" data-act="comPag" data-id="'+r.b.id+'">Desfazer</button>':'<button class="btn sm pri" data-act="comPag" data-id="'+r.b.id+'">'+ic('check')+'Marcar como pago</button>'}</div></div>`).join('')}
     <div class="card c6"><h2>Comissão × faturamento</h2><div style="height:220px;margin-top:8px"><canvas id="chCom"></canvas></div></div>
     <div class="card c6" style="padding:0"><div class="sh"><h2>Vales do mês</h2></div><div class="tw" style="border:none"><table class="tbl"><thead><tr><th>Data</th><th>Barbeiro</th><th>Observação</th><th class="r">Valor</th><th></th></tr></thead><tbody>
       ${S.vales.filter(v=>v.date.slice(0,7)===U.mes).map(v=>`<tr><td class="m">${fD(v.date)}</td><td>${esc((IX.b[v.barbeiroId]||{}).nome||'—')}</td><td>${esc(v.obs||'')}</td><td class="m r">${fR2(num(v.valor))}</td><td class="r"><button class="ibtn sm" data-act="delVale" data-id="${v.id}" aria-label="Excluir vale">${ic('trash')}</button></td></tr>`).join('')||'<tr><td colspan="5">'+empty('Nenhum vale neste mês.')+'</td></tr>'}
@@ -959,15 +984,17 @@ VIEWS.comissoes=()=>{const rows=comissoes(U.mes);
 VIEWS.financeiro=()=>{const M=month(U.mes);const cs=S.contas.filter(c=>c.venc.slice(0,7)===U.mes).sort((a,b)=>a.venc.localeCompare(b.venc));
   const PJ=M.frac<1;const line=(l,v,cls,fixo)=>`<tr class="${cls||''}"><td>${l}</td><td class="m r">${fR2(v)}</td>${PJ?'<td class="m r">'+fR2(fixo?v:v/M.frac)+'</td>':''}<td class="m r faint">${M.bruta?fP((fixo&&PJ?v/M.brutaProj:v/M.bruta)):'—'}</td></tr>`;
   const ms=[...Array(6)].map((_,i)=>ymAdd(U.mes,i-5)).filter(m=>S.atend.some(a=>a.date.slice(0,7)===m));
+  const RF=resFin();
   $('#main').innerHTML=`<div class="tbar">${monthSel()}<span class="grow"></span><button class="btn pri" data-act="newConta">${ic('plus')}Conta a pagar</button></div>
   <div class="grid">
+    ${RF.html}
     <div class="card c6"><h2>Resultado do mês (DRE)</h2><p class="sub" style="margin-bottom:10px">${ymLong(U.mes)}${M.frac<1?' · até '+fD(TODAY):''}</p>
-      <table class="tbl dre"><thead><tr><th></th><th class="r">${PJ?'Até hoje':'R$'}</th>${PJ?'<th class="r">Projeção do mês</th>':''}<th class="r">% receita</th></tr></thead><tbody>
+      <div style="overflow-x:auto"><table class="tbl dre"><thead><tr><th></th><th class="r">${PJ?'Até hoje':'R$'}</th>${PJ?'<th class="r">Projeção do mês</th>':''}<th class="r">% receita</th></tr></thead><tbody>
       ${line('Serviços',M.serv-M.desc)}${line('Produtos',M.prod)}${line('Assinaturas recebidas',M.assin)}
       ${line('<b>Receita bruta</b>',M.bruta,'tot')}${line('(−) Impostos ('+fP(S.cfg.imposto)+')',-M.imp)}${line('(−) Taxas da maquininha',-M.taxas)}
       ${line('<b>Receita líquida</b>',M.liq,'tot')}${line('(−) Comissões',-M.com)}${line('(−) Material dos serviços',-M.mat)}${line('(−) Custo dos produtos vendidos',-M.cmv)}
       ${line('<b>Margem de contribuição</b>',M.mc,'tot')}${line('(−) Despesas fixas',-M.fixas,'',true)}
-      <tr class="tot big"><td><b>Resultado do mês</b></td><td class="m r ${M.res<0?'neg':'pos'}"><b>${fR2(M.res)}</b></td>${PJ?'<td class="m r '+(M.resProj<0?'neg':'pos')+'"><b>'+fR2(M.resProj)+'</b></td>':''}<td class="m r">${PJ?(M.brutaProj?fP(M.resProj/M.brutaProj):'—'):(M.bruta?fP(M.res/M.bruta):'—')}</td></tr></tbody></table>
+      <tr class="tot big"><td><b>Resultado do mês</b></td><td class="m r ${M.res<0?'neg':'pos'}"><b>${fR2(M.res)}</b></td>${PJ?'<td class="m r '+(M.resProj<0?'neg':'pos')+'"><b>'+fR2(M.resProj)+'</b></td>':''}<td class="m r">${PJ?(M.brutaProj?fP(M.resProj/M.brutaProj):'—'):(M.bruta?fP(M.res/M.bruta):'—')}</td></tr></tbody></table></div>
       ${PJ?'<p class="faint" style="font-size:11.5px;margin-top:8px">O mês ainda não acabou: as despesas fixas já entram inteiras, por isso o resultado até hoje fica menor. A projeção estende receitas e custos variáveis pelo ritmo de '+fP(M.frac,0)+' do mês e mantém as despesas fixas.</p>':''}</div>
     <div class="card c6"><h2>Ponto de equilíbrio</h2><p class="sub" style="margin-bottom:12px">quanto a barbearia precisa faturar para pagar todas as despesas fixas</p>
       <div class="grid" style="gap:10px">
@@ -980,7 +1007,7 @@ VIEWS.financeiro=()=>{const M=month(U.mes);const cs=S.contas.filter(c=>c.venc.sl
       ${cs.map(c=>{const st=c.pago?'Pago':c.venc<TODAY?'Vencida':'Pendente';return `<tr><td class="m ${st==='Vencida'?'neg':''}">${fD(c.venc)}</td><td>${esc(c.desc)}</td><td>${esc(c.cat)}</td><td class="m r">${fR2(num(c.valor))}</td><td>${bdg(st)}</td>
         <td class="nw r">${c.pago?'':'<button class="btn sm" data-act="pagar" data-id="'+c.id+'">'+ic('check')+'Pagar</button> '}<button class="ibtn sm" data-act="delConta" data-id="${c.id}" aria-label="Excluir conta">${ic('trash')}</button></td></tr>`;}).join('')||'<tr><td colspan="6">'+empty('Nenhuma conta neste mês.')+'</td></tr>'}
       </tbody></table></div></div></div>`;
-  const Ms=ms.map(month);mkChart('chRes',{type:'bar',data:{labels:Ms.map(x=>ymLab(x.ym)+(x.frac<1?' (prev.)':'')),datasets:[{label:'Receita bruta',data:Ms.map(x=>x.brutaProj),backgroundColor:Ms.map(x=>x.frac<1?'rgba(91,155,213,.45)':COLORS.aco),borderRadius:4},{label:'Resultado',data:Ms.map(x=>x.resProj),backgroundColor:Ms.map(x=>x.resProj<0?COLORS.vermelho:COLORS.verde),borderRadius:4}]},options:{maintainAspectRatio:false,scales:{y:axisR},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+(Ms[c.dataIndex].frac<1?' (projeção)':'')+': '+fR(c.raw)}}}}});};
+  RF.chart();const Ms=ms.map(month);mkChart('chRes',{type:'bar',data:{labels:Ms.map(x=>ymLab(x.ym)+(x.frac<1?' (prev.)':'')),datasets:[{label:'Receita bruta',data:Ms.map(x=>x.brutaProj),backgroundColor:Ms.map(x=>x.frac<1?'rgba(91,155,213,.45)':COLORS.aco),borderRadius:4},{label:'Resultado',data:Ms.map(x=>x.resProj),backgroundColor:Ms.map(x=>x.resProj<0?COLORS.vermelho:COLORS.verde),borderRadius:4}]},options:{maintainAspectRatio:false,scales:{y:axisR},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+(Ms[c.dataIndex].frac<1?' (projeção)':'')+': '+fR(c.raw)}}}}});};
 
 /* ---------------- SERVIÇOS E PREÇOS ---------------- */
 VIEWS.servicos=()=>{const P=precos(U.mes);
@@ -1075,7 +1102,9 @@ const A={
   newConta:()=>simple('Nova conta a pagar',[{k:'desc',label:'Descrição',w:'half'},{k:'cat',label:'Categoria',type:'select',options:['Despesa fixa','Compra de produtos','Outras'],w:'half',help:'Só despesas fixas entram no ponto de equilíbrio'},
     {k:'valor',label:'Valor (R$)',type:'number',step:'0.01',w:'third'},{k:'venc',label:'Vencimento',type:'date',value:TODAY,w:'third'},{k:'pago',label:'Situação',type:'select',options:[['0','Pendente'],['1','Pago']],w:'third'}],
     v=>{if(!v.desc||!num(v.valor)){toast('Preencha descrição e valor',{icon:'alert'});return false;}snap();S.contas.push({id:uid('k'),desc:v.desc,cat:v.cat,valor:num(v.valor),venc:v.venc,pago:v.pago==='1'});commit('Conta registrada');}),
-  pagar:t=>{const c=S.contas.find(x=>x.id===t.dataset.id);snap();c.pago=true;commit(c.desc+': paga');},
+  pagar:t=>{const c=S.contas.find(x=>x.id===t.dataset.id);snap();c.pago=true;let msg=c.desc+': paga';
+    if(c.cat==='Despesa fixa'){const sd=sum(S.reserva,r=>num(r.valor)),v=Math.min(sd,num(c.valor));if(v>0){S.reserva.push({id:uid('r'),date:TODAY,valor:-v,obs:'Pagamento: '+c.desc,contaId:c.id});msg+=' · '+fR2(v)+' saiu da reserva';}}
+    commit(msg);},
   delConta:t=>confirmDlg('Excluir esta conta?',()=>{snap();S.contas=S.contas.filter(c=>c.id!==t.dataset.id);commit('Conta excluída');},'Excluir'),
   newServ:()=>simple('Novo serviço',[{k:'nome',label:'Serviço',w:'half'},{k:'preco',label:'Preço (R$)',type:'number',step:'0.01',w:'half'},{k:'min',label:'Tempo (min)',type:'number',w:'half'},{k:'material',label:'Material por atendimento (R$)',type:'number',step:'0.5',w:'half'}],
     v=>{if(!v.nome){toast('Informe o nome',{icon:'alert'});return false;}snap();S.servicos.push({id:uid('s'),nome:v.nome,preco:num(v.preco),min:num(v.min),material:num(v.material)});commit('Serviço cadastrado');}),
@@ -1134,7 +1163,7 @@ VIEWS.agenda=()=>{const d=U.dia,I=diaInfo(d),view=U.agView||'dia';
       ${kpi('Ocupação das cadeiras',cap?fP(I.occ,0):'fechado',cap?fN(sum(I.gs.filter(g=>g.status!=='Faltou'),agDur)/60,1)+' h de '+fN(cap/60,0)+' h disponíveis':'a barbearia não abre aos domingos',I.occ>=.85?'cr':I.occ>=.6?'az':'am',cap?I.occ:null)}
       ${kpi('Agendado nos próximos 7 dias',fR(p7),fN(n7)+' horários marcados a partir de hoje','cr')}
       <div class="card c9" style="padding:12px">${view==='dia'?calDia(d):calSemana(d)}</div>
-      <div class="card c3">${miniMes(d)}<div style="margin-top:16px">${confList(d)}</div></div>
+      <div class="card c3">${miniMes(d)}<div style="margin-top:16px">${S.cfg.whats?confList(d):resCard()}</div></div>
       <div class="card"><div class="hrow"><div><h2>Faturamento previsto · próximos 14 dias</h2><p class="sub">${projTxt()}</p></div></div><div style="height:250px"><canvas id="chProj"></canvas></div></div>
     </div>`;
   const ds=[...Array(14)].map((_,k)=>addD(TODAY,k)).filter(x=>pD(x).getDay()!==0);const MD=mediasDow();
@@ -1158,13 +1187,13 @@ function calDia(d){const bs=S.barbeiros,n=bs.length,H=FECHA-ABRE;const gs=S.agen
       ${mine.map(g=>{const t=hm2m(g.hora),du=agDur(g);const late=agAtrasado(g);
         return `<button class="ag-b st-${AG_SLUG[g.status]}${late?' late':''}" data-act="openAg" data-id="${g.id}" style="top:${(t-ABRE)*PXM}px;height:${Math.max(24,du*PXM-3)}px" title="${esc(g.hora+' · '+g.cliente+' · '+agServ(g)+' · '+g.status)}">
           <span class="ag-t"><b>${g.hora}</b>${esc(g.cliente)}${g.assinante?' <i class="ag-tag">assinante</i>':''}</span>${du>=30?'<small>'+esc(agServ(g))+(agValor(g)?' · '+fR(agValor(g)):'')+'</small>':''}
-          <span class="ag-ic">${g.origem==='WhatsApp'?'<i class="wa" title="Agendado pelo WhatsApp">WA</i>':''}${g.status==='Confirmado'?ic('check'):''}</span></button>`;}).join('')}</div>`;};
+          <span class="ag-ic">${g.origem==='WhatsApp'&&S.cfg.whats?'<i class="wa" title="Agendado pelo WhatsApp">WA</i>':''}${g.status==='Confirmado'?ic('check'):''}</span></button>`;}).join('')}</div>`;};
   const head=bs.map(b=>{const mine=gs.filter(g=>g.barbeiroId===b.id&&g.status!=='Cancelado');return `<div class="cal-bh">${esc(b.nome)}<small>${mine.length} horários · ${fR(sum(mine.filter(agAtivo),agValor)+sum(S.atend.filter(a=>a.date===d&&a.barbeiroId===b.id),a=>calcA(a).bruto))}</small></div>`;}).join('');
   const nowL=d===TODAY&&nowMin()>ABRE&&nowMin()<FECHA?`<div class="cal-now" style="top:${(nowMin()-ABRE)*PXM}px"><span>${m2hm(nowMin())}</span></div>`:'';
   if(pD(d).getDay()===0)return '<div class="empty" style="padding:60px 0">Domingo: a barbearia não abre. Escolha outro dia.</div>';
   return `<div class="cal" style="--n:${n}"><div class="cal-head"><div></div>${head}</div>
     <div class="cal-scroll"><div class="cal-body" style="height:${H*PXM}px;--hh:${60*PXM}px"><div class="cal-times">${hours.map(h=>`<div class="cal-hr" style="top:${(h*60-ABRE)*PXM}px">${pad(h)}:00</div>`).join('')}</div>${bs.map(col).join('')}${nowL}</div></div></div>
-    <div class="cal-leg">${['Agendado','Confirmado','Concluído','Faltou'].map(s=>`<span><i class="sw sw-${AG_SLUG[s]}"></i>${s}</span>`).join('')}<span><i class="wa">WA</i>marcado pelo WhatsApp</span><span><i class="late-i"></i>Passou do horário sem baixa</span><span class="faint">Clique num espaço livre para agendar</span></div>`;}
+    <div class="cal-leg">${['Agendado','Confirmado','Concluído','Faltou'].map(s=>`<span><i class="sw sw-${AG_SLUG[s]}"></i>${s}</span>`).join('')}${S.cfg.whats?'<span><i class="wa">WA</i>marcado pelo WhatsApp</span>':''}<span><i class="late-i"></i>Passou do horário sem baixa</span><span class="faint">Clique num espaço livre para agendar</span></div>`;}
 function calSemana(d){const dow=pD(d).getDay(),mon=addD(d,dow===0?-6:1-dow);const days=[...Array(6)].map((_,k)=>addD(mon,k));
   return `<div class="wk">${days.map(x=>{const I=diaInfo(x),gs=I.gs.slice().sort((a,b)=>a.hora.localeCompare(b.hora));
     return `<div class="wk-d${x===TODAY?' today':''}"><button class="wk-h" data-act="pickDia" data-d="${x}" data-v="dia"><b>${DOW[pD(x).getDay()].slice(0,3)} ${pD(x).getDate()}</b><span>${gs.length} horários · ${fR(I.total)}</span>${pbar(I.occ)}</button>
@@ -1190,9 +1219,9 @@ function agModal(g,pre){g=g||{};pre=pre||{};const isNew=!g.id;const ss=new Set(g
     {k:'barbeiroId',label:'Profissional',type:'select',options:S.barbeiros.map(b=>[b.id,b.nome]),value:g.barbeiroId||pre.barbeiroId,w:'third'},
     {k:'cliente',label:'Cliente',value:g.cliente,list:'dl-cli',w:'half'},{k:'tel',label:'WhatsApp do cliente',value:g.tel,w:'half'},
     {k:'serv',type:'html',html:'<label>Serviços</label><div class="chks">'+S.servicos.map(s=>`<label><input type="checkbox" name="sv" value="${s.id}"${ss.has(s.id)?' checked':''}> ${esc(s.nome)} <span class="faint mono">${s.min} min · ${fR(s.preco)}</span></label>`).join('')+'</div>'},
-    {k:'origem',label:'Origem',type:'select',options:ORIGENS,value:g.origem||'WhatsApp',w:'third'},{k:'assin',label:'Assinante?',type:'select',options:[['0','Não'],['1','Sim (sem cobrança)']],value:g.assinante?'1':'0',w:'third'},
+    {k:'origem',label:'Como marcou',type:'select',options:ORIGENS,value:g.origem||'WhatsApp',w:'third'},{k:'assin',label:'Assinante?',type:'select',options:[['0','Não'],['1','Sim (sem cobrança)']],value:g.assinante?'1':'0',w:'third'},
     {k:'status',label:'Situação',type:'select',options:AG_ST,value:g.status||'Agendado',w:'third'},{k:'obs',label:'Observação',value:g.obs}],
-    extra:'<div class="fld"><div class="repprev" id="agPrev"></div></div>'+(isNew?'':'<div class="fld"><label>Confirmação automática pelo WhatsApp</label><div class="waprev" id="waPrev"></div></div>')+'<datalist id="dl-cli">'+[...new Set(S.agenda.map(x=>x.cliente).concat(S.assinantes.map(a=>a.cliente)))].slice(0,300).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>',
+    extra:'<div class="fld"><div class="repprev" id="agPrev"></div></div>'+(isNew||!S.cfg.whats?'':'<div class="fld"><label>Confirmação automática pelo WhatsApp</label><div class="waprev" id="waPrev"></div></div>')+'<datalist id="dl-cli">'+[...new Set(S.agenda.map(x=>x.cliente).concat(S.assinantes.map(a=>a.cliente)))].slice(0,300).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>',
     left:isNew?'':`<button type="button" class="btn sm dan l" data-act="delAg" data-id="${g.id}">${ic('trash')}</button>${agAtivo(g)?`<button type="button" class="btn sm won" data-act="concluirAg" data-id="${g.id}">${ic('check')}Concluir e lançar no caixa</button><button type="button" class="btn sm" data-act="faltouAg" data-id="${g.id}">Faltou</button>`:''}`,
     onInput:()=>{const fm=$('#mform');if(!fm)return;const x=readAg(fm,g);const du=agDur(x),fim=hm2m(x.hora)+du;const cf=conflito(x);
       $('#agPrev').innerHTML=`<span>Duração <b>${du} min</b></span><span>Termina <b>${m2hm(fim)}</b></span><span>Valor <b>${x.assinante?'assinatura':fR2(agValor(x))}</b></span>${cf?'<span class="neg">Conflito: '+esc((IX.b[x.barbeiroId]||{}).nome)+' já atende '+esc(cf.cliente)+' às '+cf.hora+'</span>':''}`;
@@ -1216,6 +1245,59 @@ function concluirModal(g){const forma0=g.assinante?'Assinatura':'Pix';
 function atFromAg(g,fm){const forma=fm.elements.forma.value,assin=forma==='Assinatura';const itens=g.servicos.map(id=>({t:'s',id,qtd:1,preco:assin?0:num((IX.s[id]||{}).preco)}));
   const pid=fm.elements.prod.value;if(pid)itens.push({t:'p',id:pid,qtd:Math.max(1,num(fm.elements.pq.value)),preco:num((IX.p[pid]||{}).preco)});
   return {id:uid('t'),date:g.date,hora:g.hora,cliente:g.cliente,barbeiroId:g.barbeiroId,itens,forma,desconto:num(fm.elements.desconto.value),assinante:assin};}
+
+
+/* =====================================================================
+   RESERVA DIÁRIA PARA AS CONTAS FIXAS
+   ===================================================================== */
+function diasAbertos(a,b){let k=0;for(let d=a;d<b;d=addD(d,1))if(pD(d).getDay()!==0)k++;return k;}
+function reservaTaxa(dia,saldo,abertas){const lim=addD(dia,RES_HOR);
+  const cs=abertas.filter(c=>c.venc<=lim).slice().sort((a,b)=>a.venc.localeCompare(b.venc));let cum=0,taxa=0,alvo=null;
+  cs.forEach((c,i)=>{cum+=num(c.valor);const nx=cs[i+1];if(nx&&nx.venc===c.venc)return;const due=c.venc<dia?dia:c.venc;const dias=Math.max(1,diasAbertos(dia,due));
+    const r=(cum-saldo)/dias;if(r>taxa){taxa=r;alvo={venc:c.venc,cum,dias};}});
+  return {taxa,alvo,cs};}
+function reserva(){const fx=S.contas.filter(c=>c.cat==='Despesa fixa'&&!c.pago);
+  const saldo=sum(S.reserva,r=>num(r.valor));const guardadoHoje=sum(S.reserva.filter(r=>r.date===TODAY&&num(r.valor)>0&&!r.contaId),r=>num(r.valor));
+  const T=reservaTaxa(TODAY,saldo-guardadoHoje,fx);const meta=T.taxa>0?Math.ceil(T.taxa/5)*5:0;
+  let rest=saldo;const rows=T.cs.map(c=>{const v=num(c.valor);const cob=Math.max(0,Math.min(v,rest));rest-=cob;return {c,v,cob,falta:v-cob,dias:diasAbertos(TODAY,c.venc<TODAY?TODAY:c.venc)};});
+  const prox=rows.find(r=>r.falta>0)||rows[0]||null;
+  const ini=addD(TODAY,-28),fat=sum(S.atend.filter(a=>a.date>=ini&&a.date<TODAY),a=>calcA(a).bruto),mdia=fat/Math.max(1,diasAbertos(ini,TODAY));
+  return {saldo,meta,guardadoHoje,falta:Math.max(0,meta-guardadoHoje),alvo:T.alvo,rows,prox,total:sum(rows,r=>r.v),mdia};}
+function resResumo(R){if(!R.alvo)return 'As contas fixas dos próximos '+RES_HOR+' dias já estão cobertas pela reserva.';
+  const cs=R.rows.filter(r=>r.c.venc<=R.alvo.venc);
+  return 'Guardando '+fR(R.meta)+' por dia de funcionamento, a reserva chega a '+fR(R.alvo.cum)+' em '+fD(R.alvo.venc)+', o suficiente para '+(cs.length===1?esc(cs[0].c.desc):cs.length+' contas, de '+esc(cs[0].c.desc)+' até '+esc(cs[cs.length-1].c.desc))+'.';}
+function resCard(){const R=reserva(),p=R.prox;
+  return `<div class="hrow" style="margin-bottom:4px"><h2 style="font-size:15px">Reserva das contas fixas</h2>${R.falta?'':bdg('OK')}</div>
+    <p class="faint" style="font-size:11.5px;margin-bottom:10px">quanto separar do caixa de hoje para pagar as próximas contas em dia</p>
+    <div class="resbig"><div><div class="lab">Guardar hoje</div><div class="val mono ${R.falta?'am':'cr'}">${R.falta?fR(R.falta):'feito'}</div></div>
+      <div class="r"><div class="lab">Reserva atual</div><div class="val mono">${fR(R.saldo)}</div></div></div>
+    ${R.guardadoHoje?'<p class="faint" style="font-size:11.5px;margin-top:6px">já guardado hoje: '+fR(R.guardadoHoje)+' de '+fR(R.meta)+'</p>':''}
+    ${p?`<div class="resnext"><div class="pmeta"><span>Próxima: <b>${esc(p.c.desc)}</b> · ${fD(p.c.venc)}</span><b class="mono">${fR(p.v)}</b></div>${pbar(p.v?p.cob/p.v:1,p.cob>=p.v?COLORS.verde:COLORS.ambar)}
+      <div class="faint" style="font-size:11px;margin-top:4px">${p.cob>=p.v?'já coberta pela reserva':fR(p.cob)+' já guardados · '+(p.dias?p.dias+' dias de funcionamento até o vencimento':'vence hoje')}</div></div>`:''}
+    <button class="btn sm ${R.falta?'pri':''}" style="margin-top:12px;width:100%;justify-content:center" data-act="guardar">${ic('save')}Registrar valor guardado</button>`;}
+function resFin(){const R=reserva();
+  const hist=[];let sd=0;const ini=addD(TODAY,-60);S.reserva.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{sd+=num(r.valor);hist.push([r.date,sd]);});
+  const ds=[];for(let d=ini;d<=TODAY;d=addD(d,1))ds.push(d);let j=0,cur=0;const hs=hist;const serie=ds.map(d=>{while(j<hs.length&&hs[j][0]<=d){cur=hs[j][1];j++;}return cur;});
+  const mov=S.reserva.slice().sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id))).slice(0,6);
+  return {R,html:`<div class="card"><div class="hrow"><div><h2>Reserva diária para as contas fixas</h2><p class="sub">quanto guardar a cada dia de funcionamento para pagar as contas fixas dos próximos ${RES_HOR} dias sem aperto</p></div><button class="btn ${R.falta?'pri':''}" data-act="guardar">${ic('save')}Registrar valor guardado</button></div>
+    <div class="grid" style="gap:10px;margin-top:12px">
+      ${kpi('Guardar hoje',R.falta?fR(R.falta):'feito',R.guardadoHoje?'guardado hoje '+fR(R.guardadoHoje)+' de '+fR(R.meta):'valor do dia calculado às '+m2hm(nowMin()),R.falta?'am':'cr',null,'c3')}
+      ${kpi('Reserva atual',fR(R.saldo),'dinheiro já separado para as contas','az',null,'c3')}
+      ${kpi('Contas fixas a cobrir',fR(R.total),R.rows.length+' contas até '+fD(addD(TODAY,RES_HOR)),'',null,'c3')}
+      ${kpi('Peso no caixa do dia',R.mdia?fP(R.meta/R.mdia,0):'—','do faturamento médio diário ('+fR(R.mdia)+')','',null,'c3')}</div>
+    <div class="notebox" style="margin:12px 0;font-size:12.5px;line-height:1.6">${resResumo(R)} O valor é recalculado todo dia: se um dia o caixa for fraco e der para guardar menos, os dias seguintes compensam.</div>
+    <div class="grid" style="gap:14px"><div class="c7" style="min-width:0"><div class="tw"><table class="tbl"><thead><tr><th>Vencimento</th><th>Conta</th><th class="r">Valor</th><th class="r">Dias até lá</th><th style="width:30%">Coberto pela reserva</th><th class="r">Falta</th></tr></thead><tbody>
+      ${R.rows.map(r=>`<tr><td class="m ${r.c.venc<TODAY?'neg':''}">${fD(r.c.venc)}</td><td>${esc(r.c.desc)}${r.c.venc<TODAY?' '+bdg('Vencida'):''}</td><td class="m r">${fR2(r.v)}</td><td class="m r">${r.dias}</td><td>${pbar(r.v?r.cob/r.v:1,r.cob>=r.v?COLORS.verde:COLORS.ambar)}</td><td class="m r ${r.falta?'':'pos'}">${r.falta?fR2(r.falta):'ok'}</td></tr>`).join('')||'<tr><td colspan="6">'+empty('Nenhuma conta fixa em aberto.')+'</td></tr>'}
+      </tbody></table></div></div>
+      <div class="c5" style="min-width:0"><div style="height:170px"><canvas id="chRes2"></canvas></div>
+        <div class="tw" style="margin-top:8px"><table class="tbl"><tbody>${mov.map(r=>`<tr><td class="m">${fD(r.date)}</td><td>${esc(r.obs||'')}</td><td class="m r ${num(r.valor)<0?'neg':'pos'}">${(num(r.valor)>0?'+':'')+fR2(num(r.valor))}</td><td class="r"><button class="ibtn sm" data-act="delRes" data-id="${r.id}" aria-label="Excluir movimento">${ic('trash')}</button></td></tr>`).join('')}</tbody></table></div></div></div></div>`,
+    chart:()=>mkChart('chRes2',{type:'line',data:{labels:ds.map(d=>fDs(d)),datasets:[{label:'Reserva',data:serie,borderColor:COLORS.aco,backgroundColor:'rgba(91,155,213,.15)',fill:true,pointRadius:0,borderWidth:2,stepped:true}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'Reserva: '+fR(c.raw)}}},scales:{y:axisR,x:{ticks:{maxTicksLimit:7}}}}})};}
+function guardarModal(){const R=reserva();
+  simple('Reserva das contas fixas',[{k:'tipo',label:'Movimento',type:'select',options:['Guardar na reserva','Retirar da reserva'],w:'half'},{k:'date',label:'Data',type:'date',value:TODAY,w:'half'},
+    {k:'valor',label:'Valor (R$)',type:'number',step:'0.01',value:R.falta||R.meta||'',w:'half',help:R.falta?'sugestão de hoje: '+fR(R.falta):''},{k:'obs',label:'Observação',value:'Guardado do caixa do dia',w:'half'}],
+    v=>{const x=num(v.valor);if(!x){toast('Informe o valor',{icon:'alert'});return false;}const neg=v.tipo.startsWith('Retirar');
+      snap();S.reserva.push({id:uid('r'),date:v.date||TODAY,valor:neg?-Math.abs(x):Math.abs(x),obs:v.obs||(neg?'Retirada':'Guardado do caixa do dia')});commit(neg?'Retirada registrada':fR2(Math.abs(x))+' guardado na reserva');});}
+Object.assign(A,{guardar:()=>{closeModal();guardarModal();},delRes:t=>{snap();S.reserva=S.reserva.filter(r=>r.id!==t.dataset.id);commit('Movimento excluído');}});
 
 Object.assign(A,{
   agView:t=>{U.agView=t.dataset.v;render();},agHoje:()=>{U.dia=TODAY;render();},
