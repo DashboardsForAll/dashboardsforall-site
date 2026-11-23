@@ -2,22 +2,42 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Saah Confeiteira</title>
-  <!-- Endereço curto do painel da Saah Confeiteira. O painel fica no repositório próprio
-       (DashboardsForAll/saah-confeiteira); esta página só encaminha. Não é linkada no site. -->
   <meta name="robots" content="noindex, nofollow">
-  <link rel="canonical" href="https://dashboardsforall.github.io/saah-confeiteira/">
-  <meta http-equiv="refresh" content="0; url=https://dashboardsforall.github.io/saah-confeiteira/">
   <script>
-    location.replace('https://dashboardsforall.github.io/saah-confeiteira/' + location.search + location.hash);
+    // endereço oficial: www.dashboardsforall.com.br/saah-confeiteira (o endereço antigo do GitHub encaminha para ele)
+    if (location.hostname === 'dashboardsforall.github.io') location.replace('https://www.dashboardsforall.com.br/saah-confeiteira/' + location.search + location.hash);
   </script>
-  <style>
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fdf3f7; color: #4a2236; font: 16px system-ui, sans-serif; }
-    a { color: #c23f7d; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261123d">
 </head>
 <body>
-  <p>Abrindo o painel da Saah Confeiteira… <a href="https://dashboardsforall.github.io/saah-confeiteira/">clique aqui</a> se não abrir.</p>
+<!-- O mesmo conteúdo está em artifact.html (versão publicada no claude.ai, sem o esqueleto do documento). -->
+  <header class="topbar">
+    <a class="brand" href="#inicio">Saah</a>
+    <nav id="nav" class="nav"></nav>
+  </header>
+  <div id="hero"></div>
+  <main id="app" class="container"></main>
+  <footer class="container footer">
+    <span id="sync-status"></span>
+    <span id="auth-slot"></span>
+    <button class="link" data-action="export">Exportar backup</button>
+    <button class="link" data-action="import">Importar backup</button>
+    <button class="link" data-action="reset">Restaurar dados de exemplo</button>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <datalist id="dl-medidas">
+    <option value="unidade"><option value="xícara"><option value="colher sopa"><option value="colher chá">
+    <option value="ml"><option value="litros"><option value="g"><option value="kg"><option value="caixa"><option value="lata"><option value="pacote">
+  </datalist>
+  <datalist id="dl-ings"></datalist>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="config.js?v=20261123d"></script>
+  <script src="app.js?v=20261123d"></script>
 </body>
 </html>
